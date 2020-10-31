@@ -15,16 +15,16 @@ func (a *Agent)RenewActive(){
 }
 
 // HELPER METHODS ==============================================================================
-func findAgent(agents []Agent, agent Agent) bool, int {
+func FindAgent(agents []Agent, agentID string) bool, int {
   for i := 0; i < len(agents); i++{
-    if agent.ID == agents[i].ID {
+    if agentID == agents[i].ID {
       return true, i
     }
   }
   return false, 0
 }
 
-func deleteAgent(agents []Agent, position int) []Agent {
+func DeleteAgent(agents []Agent, position int) []Agent {
   agents[position] = agents[len(agents) - 1] // swap last element to element to delete
   return agents[:len(agents) - 1] // return slice with last element excluded
 }

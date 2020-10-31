@@ -5,6 +5,7 @@ import (
   "log"
   "../agent"
   "../match"
+  "github.com/google/uuid"
 )
 
 type MM struct {
@@ -12,17 +13,23 @@ type MM struct {
   inGameAgents []agent.Agent
   waitingAgents []agent.Agent
   matches []match.Match
+  chanCollectMatchFinish chan string
 }
 
 func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ServerIn) {
   var err error
+  chanCollectMatchFinish = make(chan string)
   for {
     select {
-    case msg := chanAgentStatusIntake:
+      case msg := chanAgentStatusIntake: // from amqplistener, tells you some agent satus
       log.Printf(myutli.TimeStamp() + " MM Receive: src:AgentStatusIntake, header:" + msg.Header + ", agent:" + msg.AgentID)
       err = mm.updateAgents(msg)
       myutli.FailOnError(err, "MM.updateAgent failed, msg:" + msg)
-    default: // do nothing, unblocking
+    case msg := chanCollectMatchFinish:
+      log.Printf("Match finished" + msg.ID )
+      // remove finished match
+
+      default: // do nothing, unblocking
     }
 
     err = attemptMatchMaking()
@@ -30,22 +37,38 @@ func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ServerIn) {
     err = dropAFK()
     myutli.FailOnError(err, "MM.dropAFK failed, msg:" + msg)
     // update matches channel
+
   }
 }
 
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
 
 func (mm *MM)attemptMatchMaking(){
-  pos1, pos2 := mm.mmStrategy0()
-  if pos1 == nil || pos2 == nil {
+  playersPositionsInWait := mm.mmStrategy0()
+  if playersPositionsInWait == nil {
     return
   }
+  var playersToPlay []agent.Agent
 
+  for i := range playersPositionsInWait{
+    playersToPlay = append(playersToPlay, mm.waitingAgents[i])
+    // also move from waiting to ingame
+    mm.inGameAgents = append(mm.inGameAgents, mm.waitingAgents[i])
+    mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, i)
+  }
+
+  // create a new match
   var newMatch match.Match
-  
+  newMatch.ID = uuid.New().String()
+  newMatch.ChanListenerIntake = make(chan channelstructs.ServerIn)
+  newMatch.ChanFinish = mm.chanCollectMatchFinish
+  newMatch.Players = playersToPlay
+  newMatch.StartTime = time.Now()
 
+  // add match to match list
+  mm.matches = append(mm.matches, newMatch)
 
-
+  // start the match
 }
 
 func (mm *MM)mmStrategy0() int, int{
@@ -77,7 +100,7 @@ func (mm *MM) updateAgents (serverIn channelstructs.ServerIn) error {
 }
 
 func (mm *MM) agentSignIn(myAgent agent.Agent) error{
-  found, pos := findAgent(mm.onlineAgents, myAgent)
+  found, pos := FindAgent(mm.onlineAgents, myAgent)
   if found {
     return error.New("agentSignIn, but agent is already online")
   }
@@ -86,20 +109,20 @@ func (mm *MM) agentSignIn(myAgent agent.Agent) error{
 }
 
 func (mm *MM) agentSignOut(myAgent agent.Agent){
-  found, pos := findAgent(mm.onlineAgents, myAgent)
+  found, pos := FindAgent(mm.onlineAgents, myAgent)
   if !found {
     return error.New("agentSignOut, but agent is not online")
   }
-  mm.onlineAgents = deleteAgent(mm.onlineAgents, pos)
+  mm.onlineAgents = DeleteAgent(mm.onlineAgents, pos)
   return nil
 }
 
 func (mm *MM) agentWaiting(myAgent agent.Agent){
-  found, pos := findAgent(mm.waitingAgents, myAgent)
+  found, pos := FindAgent(mm.waitingAgents, myAgent)
   if !found {
     mm.waitingAgents = append (mm.waitingAgents, myAgent)
-  } else {
-    mm.waitingAgents[pos] = myAgent // update anyway
+    } else {
+      mm.waitingAgents[pos] = myAgent // update anyway
+    }
+    return nil
   }
-  return nil
-}
