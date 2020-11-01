@@ -13,23 +13,23 @@ func Run(queueIntake <-chan amqp.Delivery) {
     select {
     case msg := <- queueIntake:
       log.Printf(myutli.TimeStamp() + " Received a message: %s", msg.Body)
-      err := processMessage(msg.Body. time.Now())
+      err := processMessage(msg.Body, myutli.TimeStamp)
       myutli.FailOnError(err, "Failed to processMessage" + string(body))
     }
   }
 }
 
 
-func processMessage(body []byte, recvTime time.Time) error {
+func processMessage(body []byte, recvTime string) error {
   // // 4 cases:
   // // Agent sign in
   // // Agent idle
   // // Agent sign off
   // // Agent move
-  var serverIn channelstructs.ServerIn
+  var serverIn channelstructs.ListenerOutput
   err := json.Unmarshal([]byte(body), &serverMsg)
   myutli.FailOnError(err, "Failed to unmarshal to json" + string(body))
-  serverIn.RecvTime = time.String(recvTime)
+  serverIn.RecvTime = recvTime
 
   switch serverIn.Header {
   case "sign in": // send to match-making

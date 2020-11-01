@@ -16,7 +16,7 @@ type MM struct {
   chanCollectMatchFinish chan string
 }
 
-func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ServerIn) {
+func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ListenerOutput) {
   var err error
   chanCollectMatchFinish = make(chan string)
   for {
@@ -25,7 +25,7 @@ func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ServerIn) {
       log.Printf(myutli.TimeStamp() + " MM Receive: src:AgentStatusIntake, header:" + msg.Header + ", agent:" + msg.AgentID)
       err = mm.updateAgents(msg)
       myutli.FailOnError(err, "MM.updateAgent failed, msg:" + msg)
-    case msg := chanCollectMatchFinish:
+      case msg := chanCollectMatchFinish:
       log.Printf("Match finished" + msg.ID )
       // remove finished match
 
@@ -60,7 +60,7 @@ func (mm *MM)attemptMatchMaking(){
   // create a new match
   var newMatch match.Match
   newMatch.ID = uuid.New().String()
-  newMatch.ChanListenerIntake = make(chan channelstructs.ServerIn)
+  newMatch.ChanListenerIntake = make(chan channelstructs.ListenerOutput)
   newMatch.ChanFinish = mm.chanCollectMatchFinish
   newMatch.Players = playersToPlay
   newMatch.StartTime = time.Now()
@@ -80,7 +80,7 @@ func (mm *MM)mmStrategy0() int, int{
 
 // UPDATE AGENTS ===================================
 
-func (mm *MM) updateAgents (serverIn channelstructs.ServerIn) error {
+func (mm *MM) updateAgents (serverIn channelstructs.ListenerOutput) error {
   err := nil
   var theAgent agent.Agent
   theAgent.ID = serverIn.AgentID

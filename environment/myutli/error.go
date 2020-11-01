@@ -12,5 +12,5 @@ func FailOnError(err error, msg string) {
 }
 
 func TimeStamp() string {
-  return time.Now().Format("Jan _2 15:04:05.000")
+  return time.Now().Format("2006-01-02 03:04:05.000")
 }

@@ -7,8 +7,8 @@ import (
 
 type Match struct {
   ID string
-  ChanListenerIntake chan channelstructs.ServerIn
-  ChanSenderOutlet chan channelstructs.ServerOut
+  ChanListenerIntake chan channelstructs.ListenerOutput
+  ChanSenderOutlet chan channelstructs.SenderIntake
   ChanFinish chan string // tells MM this match is over
   Players []agent.Agent
   // TheGame game.Game
@@ -25,7 +25,7 @@ func (m *Match) run () {
   }
 }
 
-func (m *Match) doMove(msg channelstructs.ServerIn) error {
+func (m *Match) doMove(msg channelstructs.ListenerOutput) error {
   found, playerPosition := agent.FindAgent(m.Players, msg.AgentID)
   if !found {
     return error.New("Received message from Agent:" + msg.AgentID + "\nbut agent is not a player")
@@ -41,7 +41,7 @@ func (m *Match) doMove(msg channelstructs.ServerIn) error {
 }
 
 func (m *Match) sendToOtherPlayers( moveAgentID string, move string, moveAgentPosition int ) {
-  var sendPackage channelstructs.ServerOut
+  var sendPackage channelstructs.SenderIntake
   sendPackage.MoveOwnerID = moveAgentID
   sendPackage.Move = move
   sendPackage.AgentsToSend = agent.DeleteAgent(m.Players, moveAgentPosition)

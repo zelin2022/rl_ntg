@@ -1,6 +1,6 @@
 package channelstructs
 
-type ServerIn struct {
+type ListenerOutput struct {
   Header string // purpose
   AgentID string  // name of agent
   AgentQueue string  // queue of agent
