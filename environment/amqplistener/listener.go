@@ -1,20 +1,20 @@
 package amqplistener
 
 import (
-  "../myutli"
+  "../myutil"
   "github.com/streadway/amqp"
   "log"
-  "time"
   "../channelstructs"
+  "encoding/json"
 )
 
 func Run(queueIntake <-chan amqp.Delivery) {
   for {
     select {
     case msg := <- queueIntake:
-      log.Printf(myutli.TimeStamp() + " Received a message: %s", msg.Body)
-      err := processMessage(msg.Body, myutli.TimeStamp)
-      myutli.FailOnError(err, "Failed to processMessage" + string(body))
+      log.Printf(myutil.TimeStamp() + " Received a message: %s", msg.Body)
+      err := processMessage(msg.Body, myutil.TimeStamp())
+      myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
     }
   }
 }
@@ -27,8 +27,8 @@ func processMessage(body []byte, recvTime string) error {
   // // Agent sign off
   // // Agent move
   var serverIn channelstructs.ListenerOutput
-  err := json.Unmarshal([]byte(body), &serverMsg)
-  myutli.FailOnError(err, "Failed to unmarshal to json" + string(body))
+  err := json.Unmarshal([]byte(body), &serverIn)
+  myutil.FailOnError(err, "Failed to unmarshal to json" + string(body))
   serverIn.RecvTime = recvTime
 
   switch serverIn.Header {

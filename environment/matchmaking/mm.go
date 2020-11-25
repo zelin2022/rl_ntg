@@ -5,7 +5,10 @@ import (
   "log"
   "../agent"
   "../match"
-  "github.com/google/uuid"
+  "../myutil"
+  "errors"
+  "strconv"
+
 )
 
 type MM struct {
@@ -13,40 +16,45 @@ type MM struct {
   inGameAgents []agent.Agent
   waitingAgents []agent.Agent
   matches []match.Match
-  chanCollectMatchFinish chan string
+  Channels ChannelBundle
 }
 
-func (mm *MM) Run (chanAgentStatusIntake <-chan channelstructs.ListenerOutput) {
+func (mm *MM) run () {
   var err error
-  chanCollectMatchFinish = make(chan string)
   for {
     select {
-      case msg := chanAgentStatusIntake: // from amqplistener, tells you some agent satus
-      log.Printf(myutli.TimeStamp() + " MM Receive: src:AgentStatusIntake, header:" + msg.Header + ", agent:" + msg.AgentID)
+      case msg := <- mm.Channels.ChanLS2MM: // from amqplistener, tells you some agent satus
+      log.Printf(myutil.TimeStamp() + " MM Receive: src:AgentStatusIntake, header:" + msg.Header + ", agent:" + msg.AgentID)
       err = mm.updateAgents(msg)
-      myutli.FailOnError(err, "MM.updateAgent failed, msg:" + msg)
-      case msg := chanCollectMatchFinish:
-      log.Printf("Match finished" + msg.ID )
+      myutil.FailOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
+        "\nmsg.AgentID: " + msg.AgentID +
+        "\nmsg.Move: " + msg.Move +
+        "\nmsg.SendTime: " + msg.SendTime +
+        "\nmsg.RecvTime: " + msg.RecvTime + "\n")
+    case msg := <- mm.Channels.ChanMS2MM:
+      log.Printf("Match finished: " + msg )
       // remove finished match
 
       default: // do nothing, unblocking
     }
 
-    err = attemptMatchMaking()
-    myutli.FailOnError(err, "MM.attemptMatchMaking failed, msg:" + msg)
+    err = mm.attemptMatchMaking()
+    myutil.FailOnError(err, "MM.attemptMatchMaking failed")
     err = dropAFK()
-    myutli.FailOnError(err, "MM.dropAFK failed, msg:" + msg)
+    myutil.FailOnError(err, "MM.dropAFK failed")
     // update matches channel
 
+    // sleep for a bit
+    myutil.Sleep("MatchMaking", 0.5)
   }
 }
 
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
 
-func (mm *MM)attemptMatchMaking(){
+func (mm *MM)attemptMatchMaking()(error){
   playersPositionsInWait := mm.mmStrategy0()
   if playersPositionsInWait == nil {
-    return
+    return errors.New("Match making failed (possibly not enough players) (current players in waiting:" +strconv.Itoa(len(mm.waitingAgents)) + ")")
   }
   var playersToPlay []agent.Agent
 
@@ -57,31 +65,39 @@ func (mm *MM)attemptMatchMaking(){
     mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, i)
   }
 
-  // create a new match
-  var newMatch match.Match
-  newMatch.ID = uuid.New().String()
-  newMatch.ChanListenerIntake = make(chan channelstructs.ListenerOutput)
-  newMatch.ChanFinish = mm.chanCollectMatchFinish
-  newMatch.Players = playersToPlay
-  newMatch.StartTime = time.Now()
 
-  // add match to match list
+  matchChannels := match.ChannelBundle{
+    ChanMS2RK: mm.Channels.ChanMS2RK,
+    ChanMS2SE: mm.Channels.ChanMS2SE,
+    ChanMS2MM: mm.Channels.ChanMS2MM,
+    ChansLS2MS: make(chan channelstructs.ListenerOutput),
+  }
+
+
+
+
+
+
+
+
+
+  newMatch := match.Create(playersToPlay, matchChannels)
   mm.matches = append(mm.matches, newMatch)
 
-  // start the match
+  return nil
 }
 
-func (mm *MM)mmStrategy0() int, int{
+func (mm *MM)mmStrategy0() ([]int){
   if len(mm.waitingAgents) > 2 {
-    return 0, 1
+    return []int{0, 1}
   }
-  return nil, nil
+  return nil
 }
 
 // UPDATE AGENTS ===================================
 
 func (mm *MM) updateAgents (serverIn channelstructs.ListenerOutput) error {
-  err := nil
+  var err error = nil
   var theAgent agent.Agent
   theAgent.ID = serverIn.AgentID
   theAgent.Queue = serverIn.AgentQueue
@@ -94,35 +110,40 @@ func (mm *MM) updateAgents (serverIn channelstructs.ListenerOutput) error {
   case "waiting":
     err = mm.agentWaiting(theAgent)
   default:
-    err = error.New("header is invalid")
+    err = errors.New("header is invalid")
   }
   return err
 }
 
-func (mm *MM) agentSignIn(myAgent agent.Agent) error{
-  found, pos := FindAgent(mm.onlineAgents, myAgent)
+func (mm *MM) agentSignIn(myAgent agent.Agent) (error){
+  found, _ := agent.FindAgent(mm.onlineAgents, myAgent.ID)
   if found {
-    return error.New("agentSignIn, but agent is already online")
+    return errors.New("agentSignIn, but agent is already online")
   }
   mm.onlineAgents = append (mm.onlineAgents, myAgent)
   return nil
 }
 
-func (mm *MM) agentSignOut(myAgent agent.Agent){
-  found, pos := FindAgent(mm.onlineAgents, myAgent)
+func (mm *MM) agentSignOut(myAgent agent.Agent)(error){
+  found, pos := agent.FindAgent(mm.onlineAgents, myAgent.ID)
   if !found {
-    return error.New("agentSignOut, but agent is not online")
+    return errors.New("agentSignOut, but agent is not online")
   }
-  mm.onlineAgents = DeleteAgent(mm.onlineAgents, pos)
+  mm.onlineAgents = agent.DeleteAgent(mm.onlineAgents, pos)
   return nil
 }
 
-func (mm *MM) agentWaiting(myAgent agent.Agent){
-  found, pos := FindAgent(mm.waitingAgents, myAgent)
+func (mm *MM) agentWaiting(myAgent agent.Agent)(error){
+  found, pos := agent.FindAgent(mm.waitingAgents, myAgent.ID)
   if !found {
-    mm.waitingAgents = append (mm.waitingAgents, myAgent)
-    } else {
-      mm.waitingAgents[pos] = myAgent // update anyway
-    }
-    return nil
+    mm.waitingAgents = append(mm.waitingAgents, myAgent)
+  } else {
+    mm.waitingAgents[pos] = myAgent // update anyway
   }
+  return nil
+}
+
+func dropAFK() (error){
+  //pass
+  return nil
+}

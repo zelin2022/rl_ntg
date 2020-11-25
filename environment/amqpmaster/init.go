@@ -2,8 +2,10 @@ package amqpmaster
 
 
 import (
-  "../myutli"
+  "../myutil"
   "../amqplistener"
+  "../channelstructs"
+  "../match"
   "github.com/streadway/amqp"
 
   "log"
@@ -12,11 +14,18 @@ import (
 
 var QUEUE_NAME = "server_in"
 
-func Init() (close func()) {
+
+type ChannelBundle struct{
+  ChanLS2MM chan channelstructs.ListenerOutput
+  ChanMM2LS chan []match.Match
+  ChanMS2SE chan channelstructs.SenderIntake
+}
+
+func Create(channels ChannelBundle) (close func()) {
   conn, err := amqp.Dial("amqp://test:test@localhost:5672/")
-  myutli.FailOnError(err, "Failed to connect to RabbitMQ")
+  myutil.FailOnError(err, "Failed to connect to RabbitMQ")
   ch, err := conn.Channel()
-  myutli.FailOnError(err, "Failed to open a channel")
+  myutil.FailOnError(err, "Failed to open a channel")
 
   q, err := ch.QueueDeclare(
     QUEUE_NAME, // name
@@ -26,7 +35,7 @@ func Init() (close func()) {
     false,   // no-wait
     nil,     // arguments
   )
-  myutli.FailOnError(err, "Failed to declare a queue")
+  myutil.FailOnError(err, "Failed to declare a queue")
 
   chanQueueIntake, err := ch.Consume(
     q.Name, // queue
@@ -37,11 +46,11 @@ func Init() (close func()) {
     false,  // no-wait
     nil,    // args
   )
-  myutli.FailOnError(err, "Failed to register a consumer")
+  myutil.FailOnError(err, "Failed to register a consumer")
 
   go amqplistener.Run(chanQueueIntake)
 
-  log.Printf(myutli.TimeStamp() + " [*] Waiting for messages. To exit press CTRL+C")
+  log.Printf(myutil.TimeStamp() + " [*] Waiting for messages. To exit press CTRL+C")
 
   return func (){
     ch.Close()

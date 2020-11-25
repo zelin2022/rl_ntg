@@ -15,7 +15,7 @@ func (a *Agent)RenewActive(){
 }
 
 // HELPER METHODS ==============================================================================
-func FindAgent(agents []Agent, agentID string) bool, int {
+func FindAgent(agents []Agent, agentID string) (bool, int) {
   for i := 0; i < len(agents); i++{
     if agentID == agents[i].ID {
       return true, i
