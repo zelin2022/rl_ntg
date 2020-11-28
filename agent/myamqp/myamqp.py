@@ -7,7 +7,6 @@ class MyAmqp:
         self.channel = None
         self.queue = None
         self.target_queue = target_queue
-        self.agent_ID
 
     def setup(self, consume_callback):
         self.connection = pika.BlockingConnection(
@@ -16,13 +15,19 @@ class MyAmqp:
 
         result = self.channel.queue_declare('', exclusive=True)
         self.queue = result.method.queue
-        
+
         channel.basic_consume(queue=self.queue, on_message_callback=consume_callback, auto_ack=True)
         self.channel.start_consuming()
 
     def send_something(self, msg):
         self.channel.basic_publish(exchange='', routing_key=self.target_queue, body=msg)
 
-    def receive_anything(self):
-
-    def send_move(self ):
+    def ai_output(self, agentID, move):
+        import json
+        msg = {}
+        msg["Header"] = "move"
+        msg["AgentID"] = agentID
+        msg["AgentQueue"] = self.queue
+        msg["Move"] = move
+        msg["SendTime"] = TimeStamp()
+        self.send_something(json.dumps(msg))
