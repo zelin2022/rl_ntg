@@ -45,7 +45,7 @@ func (mm *MM) run () {
     // update matches channel
 
     // sleep for a bit
-    myutil.Sleep("MatchMaking", 0.5)
+    myutil.Sleep("MatchMaking", 2.5)
   }
 }
 

@@ -8,13 +8,27 @@ import (
   "encoding/json"
 )
 
-func Run(queueIntake <-chan amqp.Delivery) {
+type ChannelBundle struct{
+  ChanLS2MM chan channelstructs.ListenerOutput
+  ChanMM2LS chan []match.Match
+  ChanAMQP chan amqp.Delivery
+}
+
+type AMQPListener struct{
+  activeMatches []match.Match
+  channels ChannelBundle
+}
+
+func (ls *AMQPListener)Run() {
   for {
     select {
-    case msg := <- queueIntake:
+    case msg := <- ls.channels.ChanAMQP:
       log.Printf(myutil.TimeStamp() + " Received a message: %s", msg.Body)
       err := processMessage(msg.Body, myutil.TimeStamp())
       myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
+
+    case newMatches := <- ls.channels.ChanMM2LS:
+      activeMatches = newMatch // update matches
     }
   }
 }

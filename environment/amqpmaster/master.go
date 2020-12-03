@@ -19,6 +19,7 @@ type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
   ChanMM2LS chan []match.Match
   ChanMS2SE chan channelstructs.SenderIntake
+  ChanMM2SE chan channelstructs.SenderIntake
 }
 
 func Create(channels ChannelBundle) (close func()) {
@@ -37,7 +38,7 @@ func Create(channels ChannelBundle) (close func()) {
   )
   myutil.FailOnError(err, "Failed to declare a queue")
 
-  chanQueueIntake, err := ch.Consume(
+  ChanConsumeCallback, err := ch.Consume(
     q.Name, // queue
     "",     // consumer
     true,   // auto-ack
@@ -48,6 +49,11 @@ func Create(channels ChannelBundle) (close func()) {
   )
   myutil.FailOnError(err, "Failed to register a consumer")
 
+  LSChannels := amqplistener.ChannelBundle{
+    ChanLS2MM: channels.ChanLS2MM,
+    ChanMM2LS: channels.ChanMM2LS,
+    ChanAMQP: ChanConsumeCallback,
+  }
   go amqplistener.Run(chanQueueIntake)
 
   log.Printf(myutil.TimeStamp() + " [*] Waiting for messages. To exit press CTRL+C")

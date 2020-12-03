@@ -19,16 +19,19 @@ func main() {
   chanMS2RK := make(chan string)
   // matches => sender
   chanMS2SE := make(chan channelstructs.SenderIntake)
+  // mcathcmkaing => sender
+  chanMM2SE := make(chan channelstructs.SenderIntake)
 
 
 
- 
+
 
   mmChannels := matchmaking.ChannelBundle{
     ChanLS2MM: chanLS2MM,
     ChanMM2LS: chanMM2LS,
     ChanMS2RK: chanMS2RK,
     ChanMS2SE: chanMS2SE,
+    ChanMM2SE: chanMM2SE,
   }
 
 
@@ -36,6 +39,7 @@ func main() {
     ChanLS2MM: chanLS2MM,
     ChanMM2LS: chanMM2LS,
     ChanMS2SE: chanMS2SE,
+    ChanMM2SE: chanMM2SE,
   }
 
 

@@ -1,4 +1,5 @@
 from myutli import myutli
+import json
 
 class Comms:
     def __init__(self, id, queue):
@@ -10,4 +11,5 @@ class Comms:
         out["Header"] = status
         out["AgentID"] = self.agent_id
         out["AgentQueue"] = self.agent_queue
-        out["SendTime"] = myutli.TimeStamp
+        out["SendTime"] = myutli.TimeStamp()
+        return json.dumps(out)

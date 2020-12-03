@@ -9,12 +9,14 @@ end
 
 if __FILE__ == $0
   execute_time = Time.new.strftime("%Y-%m-%d-%H:%M:%S:%L")
-  # Dir.mkdir("log") unless Dir.exist?"log"
+  Dir.mkdir("log") unless Dir.exist?"log" #DEBUG
   # Dir.mkdir("log/#{execute_time}")
-  `mkdir log/#{execute_time}`
+  Dir.mkdir("log/current") unless Dir.exist? "log/current"
+  # `mkdir log/#{execute_time}`
 
   # start env
-  env_id = spawn "go run environment/main.go > log/#{execute_time}/environment.log 2>&1"
+  #env_id = spawn "go run environment/main.go > log/#{execute_time}/environment.log 2>&1"
+  env_id = spawn "go run environment/main.go > log/current/environment.log 2>&1" #DEBUG change to one folder for easy of debugging
 
   # wait a bit
   sleep 5
@@ -22,7 +24,8 @@ if __FILE__ == $0
   # start agents
   agents_id = []
   for i in (1..ARGV[0].to_i)
-    agents_id.append(spawn("python3 agent/main.py > log/#{execute_time}/agent#{i}.log 2>&1"))
+    #agents_id.append(spawn("python3 agent/main.py > log/#{execute_time}/agent#{i}.log 2>&1"))
+    agents_id.append(spawn("python3 agent/main.py > log/current/agent#{i}.log 2>&1")) #DEBUG
   end
 
   # at_exit{

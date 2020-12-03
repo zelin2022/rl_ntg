@@ -1,15 +1,19 @@
 from myamqp.myamqp import MyAmqp
 from comms.comms import Comms
+import logging
 
 class Client:
     def __init__(self):
+        logging.info("Client __init__ begin")
         import uuid
         self.agentID = str(uuid.uuid4())
         self.serverQueue = 'go_in'
-        self.amqp = MyAmqp(self.serverQueue)
-        self.amqp.setup(amqp_listener_callback)
+        self.amqp = MyAmqp(self.serverQueue, self.amqp_listener_callback)
+        self.amqp.setup()
         self.comms = Comms(self.agentID, self.amqp.queue)
-        self.ai = MockAI(self.amqp.ai_output, self.agentID)
+        # self.ai = MockAI(self.amqp.ai_output, self.agentID)
+        self.ingame = False
+        logging.info("Client __init__ finished")
 
     def hook_send_sign_out(self):
         import atexit
@@ -18,26 +22,31 @@ class Client:
         atexit.register(exit_handler)
 
     def run(self):
+        logging.info("Client.run has started")
         self.send_sign_in()
         self.hook_send_sign_out()
         while True :
-            if !self.ingame:
+            if not self.ingame:
+                logging.info("not in game")
                 self.send_waiting()
-                sleep(30)
-            else
+                self.amqp.try_recv(30)
+            else:
+                logging.info("in game")
+                pass
+                # do nothing?
 
 
     def run_in_game(self):
-        players
+        pass
 
-    def amqp_listener_callback(ch, method, properties, body):
+    def amqp_listener_callback(self, ch, method, properties, body):
         print(" [x] Received %r" % body)
         loaded_msg = json.loads(body)
         header_to_function={
         "game start" : self.recv_start_game,
         "move" : self.recv_others_move,
         "game over" : self.recv_end_game,
-        "session interrupted" : self.recv_on_session_interrupted
+        "session interrupted" : self.recv_on_session_interrupted,
         "drop notification" : self.recv_on_drop_notification
         }
         header_to_function[loaded_msg.header](loaded_msg)
@@ -68,10 +77,10 @@ class Client:
 
 ########################################################
     def send_sign_in(self):
-        self.amqp.send_something(self.comms.generate_sign_in())
+        self.amqp.send_something(self.comms.create_status_msg("sign in"))
 
     def send_sign_out(self):
-        self.amqp.send_something(self.comms.generate_sign_out())
+        self.amqp.send_something(self.comms.create_status_msg("sign out"))
 
     def send_waiting(self):
-        self.amqp.send_something(self.comms.generate_waiting())
+        self.amqp.send_something(self.comms.create_status_msg("waiting"))
