@@ -6,10 +6,17 @@ import (
   "./channelstructs"
   "./match"
   "./matchmaking"
+  "log"
   // "encoding/json"
 )
 
+var QUEUE_AGENT_2_SERVER string = "server_in_0"
+var QUEUE_SERVER_2_AGENT string = "server_out_0"
+
 func main() {
+  // add milliseconds logger timestamp
+  log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+
   // create all channels
   // listener => matchmaking
   chanLS2MM := make(chan channelstructs.ListenerOutput)
@@ -50,7 +57,7 @@ func main() {
 
 
 
-  close := amqpmaster.Create(amqpChannels)
+  close := amqpmaster.Create(amqpChannels, QUEUE_AGENT_2_SERVER, QUEUE_SERVER_2_AGENT)
   defer close() // ideally...but doesn't work for ctrl+C
 
   matchmaking.Create(mmChannels)

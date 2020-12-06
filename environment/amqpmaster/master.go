@@ -12,8 +12,6 @@ import (
 
 )
 
-var QUEUE_NAME = "server_in"
-
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
@@ -22,14 +20,14 @@ type ChannelBundle struct{
   ChanMM2SE chan channelstructs.SenderIntake
 }
 
-func Create(channels ChannelBundle) (close func()) {
+func Create(channels ChannelBundle, listener_queue string, sender_queue string) (close func()) {
   conn, err := amqp.Dial("amqp://test:test@localhost:5672/")
   myutil.FailOnError(err, "Failed to connect to RabbitMQ")
   ch, err := conn.Channel()
   myutil.FailOnError(err, "Failed to open a channel")
 
   q, err := ch.QueueDeclare(
-    QUEUE_NAME, // name
+    listener_queue, // name
     false,   // durable
     true,   // delete when unused
     true,   // exclusive
@@ -54,9 +52,13 @@ func Create(channels ChannelBundle) (close func()) {
     ChanMM2LS: channels.ChanMM2LS,
     ChanAMQP: ChanConsumeCallback,
   }
-  go amqplistener.Run(chanQueueIntake)
 
-  log.Printf(myutil.TimeStamp() + " [*] Waiting for messages. To exit press CTRL+C")
+  listener := amqplistener.AMQPListener{
+    Channels: LSChannels,
+  }
+
+  go listener.Run()
+  log.Printf("[*] Waiting for messages. To exit press CTRL+C")
 
   return func (){
     ch.Close()

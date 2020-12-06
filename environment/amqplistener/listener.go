@@ -6,35 +6,39 @@ import (
   "log"
   "../channelstructs"
   "encoding/json"
+  "../match"
+  "errors"
 )
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
   ChanMM2LS chan []match.Match
-  ChanAMQP chan amqp.Delivery
+  ChanAMQP <-chan amqp.Delivery
 }
 
 type AMQPListener struct{
   activeMatches []match.Match
-  channels ChannelBundle
+  Channels ChannelBundle
 }
 
 func (ls *AMQPListener)Run() {
   for {
-    select {
-    case msg := <- ls.channels.ChanAMQP:
-      log.Printf(myutil.TimeStamp() + " Received a message: %s", msg.Body)
-      err := processMessage(msg.Body, myutil.TimeStamp())
+    select { // I think for this one, blocking is fine
+    case msg := <- ls.Channels.ChanAMQP:
+      log.Printf("Received a message: %s", msg.Body)
+      err := ls.processMessage(msg.Body, myutil.TimeStamp())
       myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
 
-    case newMatches := <- ls.channels.ChanMM2LS:
-      activeMatches = newMatch // update matches
+    case newMatches := <- ls.Channels.ChanMM2LS:
+      log.Print("Listener here, just got an update of active matches from MM")
+      ls.activeMatches = newMatches // update matches
+
     }
   }
 }
 
 
-func processMessage(body []byte, recvTime string) error {
+func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
   // // 4 cases:
   // // Agent sign in
   // // Agent idle
@@ -42,14 +46,26 @@ func processMessage(body []byte, recvTime string) error {
   // // Agent move
   var serverIn channelstructs.ListenerOutput
   err := json.Unmarshal([]byte(body), &serverIn)
-  myutil.FailOnError(err, "Failed to unmarshal to json" + string(body))
+  if err != nil {
+    return err
+  }
+
   serverIn.RecvTime = recvTime
 
   switch serverIn.Header {
   case "sign in": // send to match-making
+    ls.Channels.ChanLS2MM <- serverIn
   case "waiting": // send to match-making
+    ls.Channels.ChanLS2MM <- serverIn
   case "sign out": // send to match-making
+    ls.Channels.ChanLS2MM <- serverIn
   case "move": // send to match
+    match_pos := match.FindMatchByAgentID(ls.activeMatches, serverIn.AgentID)
+    if match_pos < 0 {
+      return errors.New("received move this agent ID: " + serverIn.AgentID + "\nbut this agent is not in match")
+    }
+    ls.activeMatches[match_pos].Channels.ChansLS2MS <- serverIn
+  default:
 
   }
 

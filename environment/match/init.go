@@ -4,6 +4,7 @@ import (
   "../channelstructs"
   "../agent"
   "time"
+  "log"
 )
 
 type ChannelBundle struct {
@@ -15,6 +16,7 @@ type ChannelBundle struct {
 
 
 func Create(playersToPlay []agent.Agent, channels ChannelBundle)(Match) {
+  log.Printf("Creating a new match, players: %v ", agent.GetAllAgentIDs(playersToPlay))
   // create a new match
   newMatch := Match{
     ID: uuid.New().String(),

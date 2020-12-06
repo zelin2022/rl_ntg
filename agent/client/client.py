@@ -3,12 +3,11 @@ from comms.comms import Comms
 import logging
 
 class Client:
-    def __init__(self):
+    def __init__(self, queue_out, queue_in):
         logging.info("Client __init__ begin")
         import uuid
         self.agentID = str(uuid.uuid4())
-        self.serverQueue = 'go_in'
-        self.amqp = MyAmqp(self.serverQueue, self.amqp_listener_callback)
+        self.amqp = MyAmqp(queue_out, self.amqp_listener_callback)
         self.amqp.setup()
         self.comms = Comms(self.agentID, self.amqp.queue)
         # self.ai = MockAI(self.amqp.ai_output, self.agentID)

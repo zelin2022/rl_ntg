@@ -67,14 +67,17 @@ func (m *Match) sendToOtherPlayers( moveAgentID string, move string, moveAgentPo
 
 
 
+
+
 // HELPR METHOD
-func findInt(list []int, item int) (bool, int) {
-  var found bool = false
-  var pos int
-  for i := 0; i < len(list); i++ {
-    if item == list[i] {
-      found, pos = true, i
+func FindMatchByAgentID(matches []Match, agentID string)(int){
+  for  i := 0; i < len(matches); i++{
+    for j:= 0; j < len(matches[i].Players); j++{  // interate over matches and players
+      if matches[i].Players[j].ID == agentID {
+        return i
+      }
     }
   }
-  return found, pos
+
+  return -1
 }
