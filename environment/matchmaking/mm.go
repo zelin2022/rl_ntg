@@ -15,13 +15,13 @@ type MM struct {
   onlineAgents []agent.Agent
   inGameAgents []agent.Agent
   waitingAgents []agent.Agent
-  matches []match.Match
+  pActiveMatches *match.ActiveMatches
   Channels ChannelBundle
+  minimumWaitTimeForAnotherMatchMaking float64
 }
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
-  ChanMM2LS chan []match.Match
   ChanMS2RK chan string
   ChanMS2SE chan channelstructs.SenderIntake
   ChanMM2SE chan channelstructs.SenderIntake
@@ -30,6 +30,10 @@ type ChannelBundle struct{
 
 func (mm *MM) run () {
   var err error
+  var minDiffSelfUpdateTime int64 = int64(mm.minimumWaitTimeForAnotherMatchMaking * 1000)
+  nextSelfUpdateTime := myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
+
+
   for {
     log.Print("================MM================")
     select {
@@ -43,23 +47,35 @@ func (mm *MM) run () {
           "\nmsg.RecvTime: " + msg.RecvTime + "\n")
       case msg := <- mm.Channels.ChanMS2MM:
         log.Printf("Match finished: " + msg )
-        // remove finished match
-        // update matches
+        // remove finished match w/ mutex
 
-      default: // if there is no news coming in, then lets match make
-        // first drop afks before matchmaking
-        err = dropAFK()
-        myutil.FailOnError(err, "MM.dropAFK failed")
-        err = mm.attemptMatchMaking()
-        myutil.FailOnError(err, "MM.attemptMatchMaking failed")
-        if err != nil { // sleep for a bit if matchmaking failed, if successful then chain it
-          myutil.Sleep("MatchMaking", 2.5)
-        }else{ // if matchmaking successful then update match info
-          mm.Channels.ChanMM2LS <- mm.matches
+      default:
+        currentTime := myutil.GetCurrentEpochMilli()
+        timeDiff := nextSelfUpdateTime - currentTime
+        if timeDiff <= 0  {
+          err = mm.selfUpdate()
+          myutil.FailOnError(err, "MatchMaking, selfUpdate")
+          // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
+          if err != nil { // else we induce sleep
+            nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
+          }
+
+        }else{
+          myutil.Sleep("matchmaking", timeDiff)
         }
 
     }
   }
+}
+
+func (mm *MM)selfUpdate()error{
+    // first drop afks before matchmaking
+    var err error
+    err = dropAFK()
+    myutil.FailOnError(err, "MM.dropAFK failed")
+    err = mm.attemptMatchMaking()
+    myutil.FailOnError(err, "MM.attemptMatchMaking failed")
+    return err
 }
 
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
@@ -88,7 +104,9 @@ func (mm *MM)attemptMatchMaking()(error){
   }
 
   newMatch := match.Create(playersToPlay, matchChannels)
-  mm.matches = append(mm.matches, newMatch)
+  mm.pActiveMatches.Mutex.Lock()
+  mm.pActiveMatches.Matches = append(mm.pActiveMatches.Matches, newMatch)
+  mm.pActiveMatches.Mutex.Unlock()
 
   return nil
 }

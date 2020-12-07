@@ -20,8 +20,6 @@ func main() {
   // create all channels
   // listener => matchmaking
   chanLS2MM := make(chan channelstructs.ListenerOutput)
-  // matchmaking => listener
-  chanMM2LS := make(chan []match.Match)
   // matches => recordKeeping
   chanMS2RK := make(chan string)
   // matches => sender
@@ -35,7 +33,6 @@ func main() {
 
   mmChannels := matchmaking.ChannelBundle{
     ChanLS2MM: chanLS2MM,
-    ChanMM2LS: chanMM2LS,
     ChanMS2RK: chanMS2RK,
     ChanMS2SE: chanMS2SE,
     ChanMM2SE: chanMM2SE,
@@ -44,7 +41,6 @@ func main() {
 
   amqpChannels := amqpmaster.ChannelBundle{
     ChanLS2MM: chanLS2MM,
-    ChanMM2LS: chanMM2LS,
     ChanMS2SE: chanMS2SE,
     ChanMM2SE: chanMM2SE,
   }
@@ -56,11 +52,13 @@ func main() {
 
 
 
+  // active matches struct is thread safe match slice
+  var activeMatches match.ActiveMatches
 
-  close := amqpmaster.Create(amqpChannels, QUEUE_AGENT_2_SERVER, QUEUE_SERVER_2_AGENT)
+  close := amqpmaster.Create(amqpChannels, QUEUE_AGENT_2_SERVER, QUEUE_SERVER_2_AGENT, &activeMatches)
   defer close() // ideally...but doesn't work for ctrl+C
 
-  matchmaking.Create(mmChannels)
+  matchmaking.Create(mmChannels, &activeMatches)
 
 
   forever := make(chan bool)

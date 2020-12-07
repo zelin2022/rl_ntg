@@ -3,8 +3,9 @@ from comms.comms import Comms
 import logging
 
 class Client:
-    def __init__(self, queue_out, queue_in):
+    def __init__(self, queue_out, queue_in, time_between_waiting):
         logging.info("Client __init__ begin")
+        self.time_between_waiting = time_between_waiting
         import uuid
         self.agentID = str(uuid.uuid4())
         self.amqp = MyAmqp(queue_out, self.amqp_listener_callback)
@@ -28,7 +29,7 @@ class Client:
             if not self.ingame:
                 logging.info("not in game")
                 self.send_waiting()
-                self.amqp.try_recv(30)
+                self.amqp.try_recv(self.time_between_waiting)
             else:
                 logging.info("in game")
                 pass

@@ -12,28 +12,26 @@ import (
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
-  ChanMM2LS chan []match.Match
+
   ChanAMQP <-chan amqp.Delivery
 }
 
 type AMQPListener struct{
-  activeMatches []match.Match
+  PActiveMatches *match.ActiveMatches
   Channels ChannelBundle
 }
 
 func (ls *AMQPListener)Run() {
   for {
+    log.Printf("select in")
     select { // I think for this one, blocking is fine
     case msg := <- ls.Channels.ChanAMQP:
       log.Printf("Received a message: %s", msg.Body)
       err := ls.processMessage(msg.Body, myutil.TimeStamp())
       myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
 
-    case newMatches := <- ls.Channels.ChanMM2LS:
-      log.Print("Listener here, just got an update of active matches from MM")
-      ls.activeMatches = newMatches // update matches
-
     }
+    log.Printf("select out")
   }
 }
 
@@ -60,11 +58,13 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
   case "sign out": // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
   case "move": // send to match
-    match_pos := match.FindMatchByAgentID(ls.activeMatches, serverIn.AgentID)
+    ls.PActiveMatches.Mutex.Lock()
+    match_pos := match.FindMatchByAgentID(ls.PActiveMatches.Matches, serverIn.AgentID)
+    ls.PActiveMatches.Mutex.Unlock()
     if match_pos < 0 {
       return errors.New("received move this agent ID: " + serverIn.AgentID + "\nbut this agent is not in match")
     }
-    ls.activeMatches[match_pos].Channels.ChansLS2MS <- serverIn
+    ls.PActiveMatches.Matches[match_pos].Channels.ChansLS2MS <- serverIn
   default:
 
   }

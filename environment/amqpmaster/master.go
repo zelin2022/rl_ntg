@@ -15,12 +15,11 @@ import (
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
-  ChanMM2LS chan []match.Match
   ChanMS2SE chan channelstructs.SenderIntake
   ChanMM2SE chan channelstructs.SenderIntake
 }
 
-func Create(channels ChannelBundle, listener_queue string, sender_queue string) (close func()) {
+func Create(channels ChannelBundle, listener_queue string, sender_queue string, activeMatches *match.ActiveMatches) (close func()) {
   conn, err := amqp.Dial("amqp://test:test@localhost:5672/")
   myutil.FailOnError(err, "Failed to connect to RabbitMQ")
   ch, err := conn.Channel()
@@ -49,12 +48,12 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string) 
 
   LSChannels := amqplistener.ChannelBundle{
     ChanLS2MM: channels.ChanLS2MM,
-    ChanMM2LS: channels.ChanMM2LS,
     ChanAMQP: ChanConsumeCallback,
   }
 
   listener := amqplistener.AMQPListener{
     Channels: LSChannels,
+    PActiveMatches: activeMatches,
   }
 
   go listener.Run()

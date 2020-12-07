@@ -15,8 +15,12 @@ func TimeStamp() string {
   return time.Now().Format("2006-01-02 03:04:05.999")
 }
 
-func Sleep(caller string, sec float64, ){
-  log.Printf("%s will sleep for %f seconds.", caller, sec)
-  time.Sleep(time.Duration(float64(time.Second) * sec)) //https://stackoverflow.com/a/42606191 how dumb
-  log.Printf("%s has awakened after %fs of sleep.", caller, sec)
+func Sleep(caller string, ms int64, ){
+  log.Printf("%s will sleep for %dms.", caller, ms)
+  time.Sleep(time.Duration(ms * int64(time.Millisecond))) //https://stackoverflow.com/a/42606191 how dumb
+  log.Printf("%s has awakened after %dms of sleep.", caller, ms)
+}
+
+func GetCurrentEpochMilli() int64{
+  return time.Now().UnixNano() / 1e6
 }
