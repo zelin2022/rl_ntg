@@ -29,7 +29,6 @@ func (ls *AMQPListener)Run() {
       log.Printf("Received a message: %s", msg.Body)
       err := ls.processMessage(msg.Body, myutil.TimeStamp())
       myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
-
     }
     log.Printf("select out")
   }

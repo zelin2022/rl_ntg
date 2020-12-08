@@ -3,10 +3,13 @@ package channelstructs
 import (
   "../agent"
 )
-type SenderIntake struct {
+
+type SenderMessage struct {
   Header string
-  GamePlayers []string // only at the start of a game
-  MoveOwnerID string
-  Move string
+  Body string
+
+}
+type SenderIntake struct {
+  Message SenderMessage
   AgentsToSend []agent.Agent // could be one or multiple
 }

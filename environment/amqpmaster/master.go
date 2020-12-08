@@ -56,6 +56,16 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
     PActiveMatches: activeMatches,
   }
 
+  SEChannels := amqpsender.ChannelBundle{
+    ChanMS2SE: channels.ChanMS2SE,
+    ChanMM2SE: channels.ChanMM2SE,
+  }
+
+  sender := amqpsender.AMQPSender{
+    Channels: SEChannels,
+    AMQP: ch,
+  }
+
   go listener.Run()
   log.Printf("[*] Waiting for messages. To exit press CTRL+C")
 
