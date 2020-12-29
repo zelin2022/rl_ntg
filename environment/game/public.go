@@ -24,6 +24,13 @@ func NewGame( players []string)Game{
 }
 
 func (g *Game)TryMove(move string, hash string) error{ // hash is to verify board state
+  // SPECIAL CASE: if move is "resign", then set up flags and leave checkWinCondition() to pick it up
+  // note: counter do not increment if resign, make sure agent hashes accordingly
+  if move == GAME_MOVE_RESIGN{
+    g.PlayerResign()
+    return nil
+  }
+
   /*
     first create a backup, in case currentState fails move
   */
@@ -56,4 +63,8 @@ func (g *Game)GetMatchEndInfo(endGameMove string) MatchEndInfo{
     Winner g.GetWinner(),   // potentially multiple winners
   }
   return output
+}
+
+func (g *Game)PlayerResign(){
+  g.cs.playerResign()
 }

@@ -23,11 +23,9 @@ func Create(playersToPlay []agent.Agent, channels ChannelBundle)(Match) {
     Channels: channels,
     Players: playersToPlay,
     StartTime: time.Now(),
-    allowedNextMovePlayersPositions: make([]int,0),
+    roundStartTime: time.Now().Unix(),
+
   }
-  newMatch.ID = uuid.New().String()
-  newMatch.Players = playersToPlay
-  newMatch.StartTime = time.Now()
 
 
   go newMatch.run()

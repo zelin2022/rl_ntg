@@ -34,13 +34,7 @@ func (cs *currentState)doMove(move string)error{
   for this specific game, we just reduce board by move
   */
 
-  // SPECIAL CASE: if move is "resign", then set up flags and leave checkWinCondition() to pick it up
-  // note: counter do not increment if resign, make sure agent hashes accordingly
-  if move == "resign"{
-    cs.isResigned = true
-    cs.resignedPlayer = currentPlayer
-    return nil
-  }
+
 
   // Step #1 Convert move
 
@@ -91,4 +85,10 @@ func (cs *currentState)checkWinCondition()(bool){
 
   return false
 
+}
+
+func (cs *currentState)playerResign(){
+  cs.isResigned = true
+  cs.resignedPlayer = cs.currentPlayer
+  cs.winner = (currentPlayer + 1) % cs.maxPlayer
 }

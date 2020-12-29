@@ -16,6 +16,7 @@ type Match struct {
   Players []agent.Agent
   TheGame game.Game
   StartTime time.Time
+  roundStartTime int64
 }
 
 func (m *Match) run () {
@@ -40,6 +41,7 @@ func (m *Match) run () {
 
 func (m *Match) matchStart(){
   m.StartTime = time.Now()
+  m.roundStartTime = time.Now().Unix()
   m.TheGame = game.NewGame(agent.GetAllAgentIDs(m.Players))
   // send match start to all players
   m.broadcastStartToAllPlayers()
@@ -84,8 +86,13 @@ func (m *Match) matchUnderway(){
 
       moveNum += 1
       expectedPlayer = (expectedPlayer + 1) % len(m.Players)
+      m.newRoundTimeStamp()
     default:
-      m.timeoutCheck()
+      if m.timeoutCheck(){ // if a time out happens
+        m.TheGame.PlayerResign() // resign the current player
+        m.broadcastEndToAllPlayers() // tell everyone game has ended
+        return
+      }
     }
 
   }
@@ -184,8 +191,12 @@ func (m *Match) sendMatchToRecordKeeper(){
 \========================================
 */
 
-func (m *Match) timeoutCheck(){
-  
+func (m *Match) newRoundTimeStamp(){
+  m.roundStartTime = time.Now().Unix()
+}
+
+func (m *Match) timeoutCheck()bool{
+  return (time.Now().Unix() - m.roundStartTime) > (PLAYER_TIME_PER_MOVE + SERVER_SIDE_TIMEOUT_GRACE)
 }
 
 
