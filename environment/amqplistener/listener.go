@@ -36,11 +36,7 @@ func (ls *AMQPListener)Run() {
 
 
 func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
-  // // 4 cases:
-  // // Agent sign in
-  // // Agent idle
-  // // Agent sign off
-  // // Agent move
+
   var serverIn channelstructs.ListenerOutput
   err := json.Unmarshal([]byte(body), &serverIn)
   if err != nil {
@@ -50,13 +46,13 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
   serverIn.RecvTime = recvTime
 
   switch serverIn.Header {
-  case "sign in": // send to match-making
+  case HEADER_AGENT_SIGN_IN: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case "waiting": // send to match-making
+  case HEADER_AGENT_WAITING: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case "sign out": // send to match-making
+  case HEADER_AGENT_SIGN_OUT: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case "move": // send to match
+  case HEADER_AGENT_MOVE: // send to match
     ls.PActiveMatches.Mutex.Lock()
     match_pos := match.FindMatchByAgentID(ls.PActiveMatches.Matches, serverIn.AgentID)
     ls.PActiveMatches.Mutex.Unlock()

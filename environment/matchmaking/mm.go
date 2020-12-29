@@ -127,11 +127,11 @@ func (mm *MM)updateAgents(serverIn channelstructs.ListenerOutput) (error) {
   theAgent.Queue = serverIn.AgentQueue
   theAgent.RenewActive()
   switch serverIn.Header {
-  case "sign in":
+  case MSG_AGENT_SIGN_IN:
     err = mm.agentSignIn(theAgent)
-  case "sign out":
+  case MSG_AGENT_WAITING:
     err = mm.agentSignOut(theAgent)
-  case "waiting":
+  case MSG_AGENT_SIGN_OUT:
     err = mm.agentWaiting(theAgent)
   default:
     err = errors.New("header is invalid")

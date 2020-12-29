@@ -7,7 +7,6 @@ import (
 type SenderMessage struct {
   Header string
   Body string
-
 }
 type SenderIntake struct {
   Message SenderMessage
