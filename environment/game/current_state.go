@@ -1,5 +1,10 @@
 package game
 
+import (
+  "fmt"
+  "strconv"
+  "errors"
+)
 /*
   this is the first iteration, in this game we play a simple Nim game
   we start with a certain number, and see who can reach 0 first
@@ -46,11 +51,11 @@ func (cs *currentState)doMove(move string)error{
   if err != nil {
     return err
   }
-  toReduce8 = (uint8)toReduce64
+  toReduce8 := uint8(toReduce64)
 
   // Step #2 Validate move
   if toReduce8 > 2 || toReduce8 < 1{ // range is [1,2]
-    return errors.New("Error toReduce8(move) should be [1,2] but is " + toReduce8)
+    return errors.New(fmt.Sprintf("Error toReduce8(move) should be [1,2] but is %d", toReduce8))
   }
 
   // Step #3 Make move
@@ -90,5 +95,5 @@ func (cs *currentState)checkWinCondition()(bool){
 func (cs *currentState)playerResign(){
   cs.isResigned = true
   cs.resignedPlayer = cs.currentPlayer
-  cs.winner = (currentPlayer + 1) % cs.maxPlayer
+  cs.winner = (cs.currentPlayer + 1) % cs.maxPlayer
 }

@@ -5,7 +5,8 @@ import (
   "../game"
   "../agent"
   "../channelstructs"
-
+  "log"
+  "../myutil"
 )
 
 
@@ -69,7 +70,12 @@ func (m *Match) matchUnderway(){
         log.Print("Expecting message from " + m.Players[expectedPlayer].ID + " but received a message from " + moveReceived.AgentID + " instead")
         continue
       }
-      err := m.doMove(moveNum, moveReceived)
+      info, err := ToMatchMoveInfo(moveReceived.Body)
+      if err != nil {
+        myutil.FailOnError(err, "Error parsing MatchMoveInfo(json):\n" + moveReceived.Body)
+        return
+      }
+      err = m.doMove(moveNum, info)
       if err != nil{
         // send a response to agent
         // or end game/match directly
@@ -100,23 +106,19 @@ func (m *Match) matchUnderway(){
 
 }
 
-func (m *Match) doMove(serverMoveNum uint8, msg channelstructs.ListenerOutput) error {
+func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
   /*
-  * unpack Body into a move string and a state_hash
-  * send the 3 variables (player, move, state) to game
+  * send the 2 variables ( move, statehash) to game
   * if no error occur, that means the move has been accepted
   * we can send this to other players
   */
-  matchMoveInfo, err := ToMatchMoveInfo(msg.Body)
-  if err != nil {
-    return errors.New("Error parsing MatchMoveInfo(json):\n" + msg.Body + "\nDetail:"+err.Error())
-  }
-  if matchMoveInfo.MoveNum != serverMoveNum {
-    return errors.New("Error server think move number is " + strconv.Itoa(serverMoveNum) + " but received move number is " + strconv.Itoa(matchMoveInfo.MoveNum))
+
+  if info.MoveNum != serverMoveNum {
+    return errors.New("Error server think move number is " + strconv.Itoa(serverMoveNum) + " but received move number is " + strconv.Itoa(info.MoveNum))
   }
 
   // forward the move to game
-  moveErr := m.TheGame.TryMove(matchMoveInfo.Move, matchMoveInfo.AfterMoveHash)
+  moveErr := m.TheGame.TryMove(info.Move, info.AfterMoveHash)
   if moveErr != nil{
     // this is different than previous errors in this section
     // previous errors would be system errors
@@ -139,11 +141,11 @@ func (m *Match) broadcastStartToAllPlayers(){
   }
   senderMessage := channelstructs.SenderMessage {
     Header: HEADER_SERVER_GAME_START,
-    Body: startInfo.ToString()
+    Body: startInfo.ToString(),
   }
   senderIntake := channelstructs.SenderIntake {
     Message: senderMessage,
-    AgentsToSend []m.Players,
+    AgentsToSend: []m.Players,
   }
   m.Channels.ChanMS2SE <- senderIntake
 }
@@ -159,11 +161,16 @@ func (m *Match) broadcastMoveToAllPlayers(body string){
   m.Channels.ChanMS2SE <- sendPackage
 }
 
-func (m *Match) broadcastEndToAllPlayers(){
+func (m *Match) broadcastEndToAllPlayers(moveInfo MatchMoveInfo){
   sendPackage := channelstructs.SenderIntake{
     Message: channelstruct.SenderMessage{
       Header: HEADER_SERVER_GAME_END,
-      Body: m.TheGame.GetMatchEndInfo().ToStinrg(),
+      Body: MatchEndInfo{
+        MoveNum: moveInfo.MoveNum,
+        Move: moveInfo.Move,
+        AfterEndHash: moveInfo.AfterMoveHash,
+        Winner: g.GetWinner(),   // potentially multiple winners
+      }.ToStinrg(),
     },
     AgentsToSend: m.Players,
   }

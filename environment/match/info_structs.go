@@ -25,20 +25,20 @@ type MatchEndInfo struct {
 }
 
 func (m *MatchStartInfo) ToString() (string){
-  str, err = json.Marshal(m)
-  myutil.FailOnError("json parsing failed, struct: " + fmt.Sprintf("%v", m))
+  str, err := json.Marshal(m)
+  myutil.FailOnError(err, "json parsing failed, struct: " + fmt.Sprintf("%v", m))
   return string(str)
 }
 
 func (m *MatchMoveInfo) ToString() (string){
-  str, err = json.Marshal(m)
-  myutil.FailOnError("json parsing failed, struct: " + fmt.Sprintf("%v", m))
+  str, err := json.Marshal(m)
+  myutil.FailOnError(err, "json parsing failed, struct: " + fmt.Sprintf("%v", m))
   return string(str)
 }
 
 func (m *MatchEndInfo) ToString() (string){
-  str, err = json.Marshal(m)
-  myutil.FailOnError("json parsing failed, struct: " + fmt.Sprintf("%v", m))
+  str, err := json.Marshal(m)
+  myutil.FailOnError(err, "json parsing failed, struct: " + fmt.Sprintf("%v", m))
   return string(str)
 }
 

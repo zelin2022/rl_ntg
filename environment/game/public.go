@@ -1,5 +1,8 @@
 package game
 
+import(
+)
+
 type Game struct{
   Players []string
   state *currentState
@@ -14,7 +17,7 @@ func NewGame( players []string)Game{
       currentMoveCount: 0,
       board: GAME_INITIAL_BOARD_NIM,
       lastValidMove: "",
-      maxPlayer: len(players),
+      maxPlayer: uint8(len(players)),
       isResigned: false,
       resignedPlayer: 0,
       winner: 0,      // initial 0 should be okay... this value should only be relevant when CheckWin() returns anyway
@@ -35,7 +38,7 @@ func (g *Game)TryMove(move string, hash string) error{ // hash is to verify boar
     first create a backup, in case currentState fails move
   */
   backup := *g.state
-  err := g.cs.doMove(move)
+  err := g.state.doMove(move)
   if err != nil{
     g.state = &backup
     return err
@@ -55,16 +58,6 @@ func (g *Game)GetWinner() string{
   return g.Players[g.state.winner]
 }
 
-func (g *Game)GetMatchEndInfo(endGameMove string) MatchEndInfo{
-  output := MatchEndInfo{
-    MoveNum: g.state.currentMoveCount,
-    Move: g.state.lastValidMove,
-    AfterEndHash: g.getHash(),
-    Winner g.GetWinner(),   // potentially multiple winners
-  }
-  return output
-}
-
 func (g *Game)PlayerResign(){
-  g.cs.playerResign()
+  g.state.playerResign()
 }
