@@ -12,7 +12,11 @@ func FailOnError(err error, msg string) {
 }
 
 func TimeStamp() string {
-  return time.Now().Format("2006-01-02 03:04:05.999")
+  return time.Now().Format("2006-01-02 03:04:05.000")
+}
+
+func TimeStamp_RC() string {
+  return time.Now().Format("20060102030405")
 }
 
 func Sleep(caller string, ms int64, ){

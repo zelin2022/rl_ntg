@@ -22,7 +22,7 @@ type MM struct {
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
-  ChanMS2RK chan string
+  ChanMS2RK chan channelstructs.MatchRecord
   ChanMS2SE chan channelstructs.SenderIntake
   ChanMM2SE chan channelstructs.SenderIntake
   ChanMS2MM chan string

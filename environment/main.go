@@ -21,7 +21,7 @@ func main() {
   // listener => matchmaking
   chanLS2MM := make(chan channelstructs.ListenerOutput)
   // matches => recordKeeping
-  chanMS2RK := make(chan string)
+  chanMS2RK := make(chan channelstructs.MatchRecord)
   // matches => sender
   chanMS2SE := make(chan channelstructs.SenderIntake)
   // mcathcmkaing => sender
@@ -60,6 +60,10 @@ func main() {
 
   matchmaking.Create(mmChannels, &activeMatches)
 
+  rk := recordkeeper.RecordKeeper{
+    ChanMS2RK: chanMS2RK,
+  }
+  rk.run()
 
   forever := make(chan bool)
   <-forever

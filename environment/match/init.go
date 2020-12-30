@@ -8,7 +8,7 @@ import (
 )
 
 type ChannelBundle struct {
-  ChanMS2RK chan string   // send to record keeper
+  ChanMS2RK chan channelstructs.MatchRecord   // send to record keeper
   ChanMS2SE chan channelstructs.SenderIntake // sender
   ChanMS2MM chan string // back to matchmaking
   ChansLS2MS chan channelstructs.ListenerOutput
