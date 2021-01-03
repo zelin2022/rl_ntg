@@ -2,7 +2,7 @@ package recordkeeper
 
 import (
   "os"
-  "myutil"
+  "../myutil"
   "../channelstructs"
 )
 
@@ -12,16 +12,16 @@ right now we just save match result, in the future we can have more things poten
 */
 
 type RecordKeeper struct {
-  file *File
-  ChanMS2RK channelstructs.MatchRecord
+  file *os.File
+  ChanMS2RK chan channelstructs.MatchRecord
 }
 
 
 
-func (rk *RecordKeeper)run (){
+func (rk *RecordKeeper)Run (){
   var err error
-  rk.file, err = os.Create(RECORDKEEPER_PATH_TO_RECORD + myutil.TimeStamp_RC())
-  defer os.close(rk.file)
+  rk.file, err = os.Create(p_RECORDKEEPER_PATH_TO_RECORD + myutil.TimeStamp_RC())
+  defer rk.file.Close()
   if err != nil{
     panic(err) // critical error
   }

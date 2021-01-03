@@ -7,6 +7,7 @@ import (
   "../channelstructs"
   "log"
   "../myutil"
+  "strconv"
 )
 
 
@@ -80,18 +81,17 @@ func (m *Match) matchUnderway(){
         // send a response to agent
         // or end game/match directly
       }
-
+      // send move message to all players
+      // since these games are perfect information, we can just forward a players' move to all players
+      m.broadcastMoveToAllPlayers(moveReceived.Body)
       // check for a win
       if m.TheGame.CheckWinCondition(){ // if a game is over, broadcast to all agents then return
         m.broadcastEndToAllPlayers()
         return
-      }else { // if game continues send move message to all players
-          // since these games are perfect information, we can just forward a players' move to all players
-          m.broadcastMoveToAllPlayers(moveReceived.Body)
       }
 
       moveNum += 1
-      expectedPlayer = (expectedPlayer + 1) % len(m.Players)
+      expectedPlayer = (expectedPlayer + 1) % uint8(len(m.Players))
       m.newRoundTimeStamp()
     default:
       if m.timeoutCheck(){ // if a time out happens
@@ -114,7 +114,7 @@ func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
   */
 
   if info.MoveNum != serverMoveNum {
-    return errors.New("Error server think move number is " + strconv.Itoa(serverMoveNum) + " but received move number is " + strconv.Itoa(info.MoveNum))
+    return errors.New("Error server think move number is " + strconv.Itoa(int(serverMoveNum)) + " but received move number is " + strconv.Itoa(int(info.MoveNum)))
   }
 
   // forward the move to game
@@ -137,23 +137,23 @@ func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
 func (m *Match) broadcastStartToAllPlayers(){
   startInfo := MatchStartInfo{
     GamePlayers: agent.GetAllAgentIDs(m.Players),
-    TimePerMove: PLAYER_TIME_PER_MOVE,
+    TimePerMove: p_PLAYER_TIME_PER_MOVE,
   }
   senderMessage := channelstructs.SenderMessage {
-    Header: HEADER_SERVER_GAME_START,
+    Header: p_HEADER_SERVER_GAME_START,
     Body: startInfo.ToString(),
   }
   senderIntake := channelstructs.SenderIntake {
     Message: senderMessage,
-    AgentsToSend: []m.Players,
+    AgentsToSend: m.Players,
   }
   m.Channels.ChanMS2SE <- senderIntake
 }
 
 func (m *Match) broadcastMoveToAllPlayers(body string){
   sendPackage := channelstructs.SenderIntake{
-    Message: channelstruct.SenderMessage{
-      Header: HEADER_SERVER_MOVE,
+    Message: channelstructs.SenderMessage{
+      Header: p_HEADER_SERVER_MOVE,
       Body: body,
     },
     AgentsToSend: m.Players,
@@ -161,16 +161,13 @@ func (m *Match) broadcastMoveToAllPlayers(body string){
   m.Channels.ChanMS2SE <- sendPackage
 }
 
-func (m *Match) broadcastEndToAllPlayers(moveInfo MatchMoveInfo){
+func (m *Match) broadcastEndToAllPlayers(){
   sendPackage := channelstructs.SenderIntake{
-    Message: channelstruct.SenderMessage{
-      Header: HEADER_SERVER_GAME_END,
-      Body: MatchEndInfo{
-        MoveNum: moveInfo.MoveNum,
-        Move: moveInfo.Move,
-        AfterEndHash: moveInfo.AfterMoveHash,
-        Winner: g.GetWinner(),   // potentially multiple winners
-      }.ToStinrg(),
+    Message: channelstructs.SenderMessage{
+      Header: p_HEADER_SERVER_GAME_END,
+      Body: (&MatchEndInfo{
+        Winner: m.TheGame.GetWinner(),   // potentially multiple winners
+      }).ToString(),
     },
     AgentsToSend: m.Players,
   }
@@ -203,7 +200,7 @@ func (m *Match) newRoundTimeStamp(){
 }
 
 func (m *Match) timeoutCheck()bool{
-  return (time.Now().Unix() - m.roundStartTime) > (PLAYER_TIME_PER_MOVE + SERVER_SIDE_TIMEOUT_GRACE)
+  return (time.Now().Unix() - m.roundStartTime) > int64(p_PLAYER_TIME_PER_MOVE + p_SERVER_SIDE_TIMEOUT_GRACE)
 }
 
 

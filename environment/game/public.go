@@ -15,7 +15,7 @@ func NewGame( players []string)Game{
     state: &currentState{
       currentPlayer: 0,
       currentMoveCount: 0,
-      board: GAME_INITIAL_BOARD_NIM,
+      board: p_GAME_INITIAL_BOARD_NIM,
       lastValidMove: "",
       maxPlayer: uint8(len(players)),
       isResigned: false,
@@ -29,7 +29,7 @@ func NewGame( players []string)Game{
 func (g *Game)TryMove(move string, hash string) error{ // hash is to verify board state
   // SPECIAL CASE: if move is "resign", then set up flags and leave checkWinCondition() to pick it up
   // note: counter do not increment if resign, make sure agent hashes accordingly
-  if move == GAME_MOVE_RESIGN{
+  if move == p_GAME_MOVE_RESIGN{
     g.PlayerResign()
     return nil
   }

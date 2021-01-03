@@ -7,8 +7,8 @@ import (
 )
 
 type MatchRecord struct {
-  players []string
-  winner string
+  Players []string
+  Winner string
 }
 
 func (mr *MatchRecord) ToString()string{

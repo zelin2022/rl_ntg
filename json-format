@@ -1,0 +1,44 @@
+when agent sends message to server:
+{
+  "header":
+  "body":
+  "aid":   #agentID
+  "stime": #send time
+}
+
+
+
+when server sends message to agent:
+{
+  "header":
+  "body":
+  "stime":  # send time
+}
+
+
+
+body:
+
+status
+# body for status is its queue
+
+start
+{
+  "players":
+  "mtime": #time per move
+}
+
+move
+{
+  "move":
+  "num":
+  'hash':
+}
+
+end
+{
+  "move":
+  "num":
+  "hash":
+  "winner":
+}

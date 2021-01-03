@@ -1,9 +1,9 @@
 package channelstructs
 
 type ListenerOutput struct {
-  Header string
-  Body string
-  AgentID string
-  SendTime string
-  RecvTime string
+  Header string `json:"header"`
+  Body string `json:"body"`
+  AgentID string `json:"aid"`
+  SendTime string `json:"stime"`
+  RecvTime string `json:"-"`
 }

@@ -7,21 +7,18 @@ import (
 )
 
 type MatchStartInfo struct {
-  GamePlayers []string
-  TimePerMove uint8
+  GamePlayers []string `json:"players"`
+  TimePerMove uint8 `json:"mtime"`
 }
 
 type MatchMoveInfo struct {
-  MoveNum uint8
-  Move string
-  AfterMoveHash string
+  MoveNum uint8 `json:"move"`
+  Move string `json:"num"`
+  AfterMoveHash string `json:"hash"`
 }
 
 type MatchEndInfo struct {
-  MoveNum uint8
-  Move string
-  AfterEndHash string
-  Winner string   // potentially multiple winners
+  Winner string  `json:"winner"` // potentially multiple winners
 }
 
 func (m *MatchStartInfo) ToString() (string){

@@ -42,7 +42,7 @@ func (mm *MM) run () {
         err = mm.updateAgents(msg)
         myutil.FailOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
           "\nmsg.AgentID: " + msg.AgentID +
-          "\nmsg.Move: " + msg.Move +
+          "\nmsg.Body: " + msg.Body +
           "\nmsg.SendTime: " + msg.SendTime +
           "\nmsg.RecvTime: " + msg.RecvTime + "\n")
       case msg := <- mm.Channels.ChanMS2MM:
@@ -124,14 +124,14 @@ func (mm *MM)updateAgents(serverIn channelstructs.ListenerOutput) (error) {
   var err error = nil
   var theAgent agent.Agent
   theAgent.ID = serverIn.AgentID
-  theAgent.Queue = serverIn.AgentQueue
+  theAgent.Queue = serverIn.Body   // for status message, body is straight up agent_queue?
   theAgent.RenewActive()
   switch serverIn.Header {
-  case MSG_AGENT_SIGN_IN:
+  case p_HEADER_AGENT_SIGN_IN:
     err = mm.agentSignIn(theAgent)
-  case MSG_AGENT_WAITING:
+  case p_HEADER_AGENT_WAITING:
     err = mm.agentSignOut(theAgent)
-  case MSG_AGENT_SIGN_OUT:
+  case p_HEADER_AGENT_SIGN_OUT:
     err = mm.agentWaiting(theAgent)
   default:
     err = errors.New("header is invalid")

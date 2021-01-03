@@ -1,7 +1,9 @@
 package amqpsender
 
 import(
-  "../agent"
+  "../channelstructs"
+  "encoding/json"
+  "../myutil"
   "github.com/streadway/amqp"
 )
 
@@ -16,12 +18,12 @@ type AMQPSender struct{
 }
 
 
-func (se *AMQPSender)run(){
+func (se *AMQPSender)Run(){
   for{
     select{
-    case: msg := <- se.Channels.ChanMS2SE
+    case msg := <- se.Channels.ChanMS2SE:
       se.send_SenderIntake(msg)
-    case: msg := <- se.Channels.ChanMM2SE
+    case msg := <- se.Channels.ChanMM2SE:
       se.send_SenderIntake(msg)
     }
   }
@@ -29,13 +31,13 @@ func (se *AMQPSender)run(){
 
 
 func (se *AMQPSender)send_SenderIntake(toSend channelstructs.SenderIntake){
-  jsonString, err := json.Marshal(toSend.SenderMessage)
+  jsonString, err := json.Marshal(toSend.Message)
   myutil.FailOnError(err, "Failed to JSON Marshal a struct")
   for i := 0; i < len(toSend.AgentsToSend); i++{
-    err = se.sendString(jsonString, toSend.AgentsToSend[i].Queue)
-    myutil.FailOnError(err, "Fail to send to agent: " + toSend.AgentsToSend[i].ID
-       + "\nqueue: " + toSend.AgentsToSend[i].Queue
-     + "\nmessage: \n" + jsonString)
+    err = se.sendString(string(jsonString), toSend.AgentsToSend[i].Queue)
+    myutil.FailOnError(err, "Fail to send to agent: " + toSend.AgentsToSend[i].ID +
+      "\nqueue: " + toSend.AgentsToSend[i].Queue +
+      "\nmessage: \n" + string(jsonString))
   }
 }
 

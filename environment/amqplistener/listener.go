@@ -12,7 +12,6 @@ import (
 
 type ChannelBundle struct{
   ChanLS2MM chan channelstructs.ListenerOutput
-
   ChanAMQP <-chan amqp.Delivery
 }
 
@@ -46,13 +45,13 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
   serverIn.RecvTime = recvTime
 
   switch serverIn.Header {
-  case HEADER_AGENT_SIGN_IN: // send to match-making
+  case p_HEADER_AGENT_SIGN_IN: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case HEADER_AGENT_WAITING: // send to match-making
+  case p_HEADER_AGENT_WAITING: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case HEADER_AGENT_SIGN_OUT: // send to match-making
+  case p_HEADER_AGENT_SIGN_OUT: // send to match-making
     ls.Channels.ChanLS2MM <- serverIn
-  case HEADER_AGENT_MOVE: // send to match
+  case p_HEADER_AGENT_MOVE: // send to match
     ls.PActiveMatches.Mutex.Lock()
     match_pos := match.FindMatchByAgentID(ls.PActiveMatches.Matches, serverIn.AgentID)
     ls.PActiveMatches.Mutex.Unlock()

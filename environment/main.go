@@ -6,6 +6,7 @@ import (
   "./channelstructs"
   "./match"
   "./matchmaking"
+  "./recordkeeper"
   "log"
   // "encoding/json"
 )
@@ -63,7 +64,7 @@ func main() {
   rk := recordkeeper.RecordKeeper{
     ChanMS2RK: chanMS2RK,
   }
-  rk.run()
+  rk.Run()
 
   forever := make(chan bool)
   <-forever

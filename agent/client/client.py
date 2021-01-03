@@ -1,19 +1,128 @@
 from myamqp.myamqp import MyAmqp
-from comms.comms import Comms
+import json
 import logging
+import time
+# when agent sends message to server:
+# {
+#   header:
+#   body:
+#   agentID:
+#   sendtime:
+# }
+#
+#
+#
+# when server sends message to agent:
+# {
+#   header:
+#   body:
+#   sendtime:
+# }
+QUEUE_AGENT_2_SERVER = "server_in_0"
+LISTENING_TIMEOUT = 5
+HEADER_AGENT_2_SERVER_MOVE = "move"
+HEADER_SERVER_2_AGENT_START = "game start"
+HEADER_SERVER_2_AGENT_MOVE = "move"
+HEADER_SERVER_2_AGENT_END = "game end"
 
 class Client:
-    def __init__(self, queue_out, queue_in, time_between_waiting):
-        logging.info("Client __init__ begin")
-        self.time_between_waiting = time_between_waiting
+    def __init__(self):
         import uuid
         self.agentID = str(uuid.uuid4())
-        self.amqp = MyAmqp(queue_out, self.amqp_listener_callback)
+        self.amqp = MyAmqp(QUEUE_AGENT_2_SERVER, self.amqp_listener_callback)
         self.amqp.setup()
-        self.comms = Comms(self.agentID, self.amqp.queue)
-        # self.ai = MockAI(self.amqp.ai_output, self.agentID)
         self.ingame = False
-        logging.info("Client __init__ finished")
+        self.next_waiting_send_time = 0
+        self.game = None
+
+    def run(self):
+        logging.info("Client.run has started")
+        self.send_sign_in()
+        self.hook_send_sign_out()
+        while True:
+            self.amqp.try_recv(5)
+            if not self.ingame:
+                logging.info("not in game")
+                if self.should_send_waiting():
+                    self.send_waiting()
+            else:
+                logging.info("in game")
+                to_server = self.game.step()
+                if to_server:
+                    self.amqp.send_something(self.create_move_msg(to_server))
+
+    def should_send_waiting(self):
+        current_time = int(time.time())
+        if current_time > self.next_waiting_send_time:
+            self.next_waiting_send_time = current_time + LISTENING_TIMEOUT
+            return True
+        else:
+            return False
+
+#######################################################
+
+
+# when agent sends message to server:
+# {
+#   header:
+#   body:
+#   agentID:
+#   sendtime:
+# }
+
+    def create_move_msg(self, body):
+        output = {}
+        output["header"] = HEADER_AGENT_2_SERVER_MOVE
+        output["body"] = json.dumps(body)
+        output["agentID"] = self.agentID
+        output["SendTime"] = int(time.time())
+        return json.dumps(output)
+
+    def create_status_msg(self, status):
+        output = {}
+        output["header"] = status
+        output["body"] = self.amqp.get_agent_queue()
+        output["agentID"] = self.agentID
+        output["SendTime"] = int(time.time())
+        return json.dumps(output)
+
+
+
+#######################################################
+
+# when server sends message to agent:
+# {
+#   header:
+#   body:
+#   sendtime:
+# }
+
+    def amqp_listener_callback(self, ch, method, properties, body):
+        print(" [x] Received %r" % body)
+        loaded_msg = json.loads(body)
+        header_to_function={
+        HEADER_SERVER_2_AGENT_START : self.recv_start_game,
+        HEADER_SERVER_2_AGENT_MOVE : self.recv_others_move,
+        HEADER_SERVER_2_AGENT_END : self.recv_end_game,
+        }
+        header_to_function[loaded_msg.header](loaded_msg)
+
+#######################################################
+
+    def recv_start_game(self, msg):
+        self.ingame = True
+        self.game.new_game(msg, self.agentID)
+
+    def recv_others_move(self, msg):
+        self.game.update_with_others_move(msg.move)
+
+    def recv_end_game(self, msg):
+        self.ingame = False
+        self.game.end_game()
+
+#######################################################
+
+
 
     def hook_send_sign_out(self):
         import atexit
@@ -21,66 +130,12 @@ class Client:
             self.send_sign_out()
         atexit.register(exit_handler)
 
-    def run(self):
-        logging.info("Client.run has started")
-        self.send_sign_in()
-        self.hook_send_sign_out()
-        while True :
-            if not self.ingame:
-                logging.info("not in game")
-                self.send_waiting()
-                self.amqp.try_recv(self.time_between_waiting)
-            else:
-                logging.info("in game")
-                pass
-                # do nothing?
-
-
-    def run_in_game(self):
-        pass
-
-    def amqp_listener_callback(self, ch, method, properties, body):
-        print(" [x] Received %r" % body)
-        loaded_msg = json.loads(body)
-        header_to_function={
-        "game start" : self.recv_start_game,
-        "move" : self.recv_others_move,
-        "game over" : self.recv_end_game,
-        "session interrupted" : self.recv_on_session_interrupted,
-        "drop notification" : self.recv_on_drop_notification
-        }
-        header_to_function[loaded_msg.header](loaded_msg)
-
-
-
-#######################################################
-
-    def recv_start_game(self, msg):
-        self.ingame = True
-        self.ai.new_game(msg.players)
-
-    def recv_others_move(self, msg):
-        self.ai.others_move(msg.move)
-
-    def recv_end_game(self, msg):
-        self.ingame = False
-        self.ai.end_game()
-
-    def recv_on_session_interrupted(self, msg):
-        self.ingame = False
-
-    def recv_on_drop_notification(self, msg):
-        self.ingame = False
-
-
-
-
 ########################################################
     def send_sign_in(self):
-        self.amqp.send_something(self.comms.create_status_msg("sign in"))
+        self.amqp.send_something(self.create_status_msg("sign in"))
 
     def send_sign_out(self):
-        self.amqp.send_something(self.comms.create_status_msg("sign out"))
+        self.amqp.send_something(self.create_status_msg("sign out"))
 
     def send_waiting(self):
-        self.amqp.send_something(self.comms.create_status_msg("waiting"))
+        self.amqp.send_something(self.create_status_msg("waiting"))

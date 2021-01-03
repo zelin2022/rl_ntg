@@ -4,6 +4,7 @@ package amqpmaster
 import (
   "../myutil"
   "../amqplistener"
+  "../amqpsender"
   "../channelstructs"
   "../match"
   "github.com/streadway/amqp"
@@ -41,7 +42,7 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
     true,   // auto-ack
     true,  // exclusive
     false,  // no-local
-    false,  // no-wait
+    false,  // no-waitamqpsender
     nil,    // args
   )
   myutil.FailOnError(err, "Failed to register a consumer")
@@ -63,11 +64,13 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
 
   sender := amqpsender.AMQPSender{
     Channels: SEChannels,
-    AMQP: ch,
+    AMQP: *ch,
   }
 
   go listener.Run()
   log.Printf("[*] Waiting for messages. To exit press CTRL+C")
+
+  go sender.Run()
 
   return func (){
     ch.Close()

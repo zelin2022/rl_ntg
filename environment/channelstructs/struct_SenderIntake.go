@@ -5,8 +5,9 @@ import (
 )
 
 type SenderMessage struct {
-  Header string
-  Body string
+  Header string `json:"header"`
+  Body string `json:"body"`
+  SendTime int64 `json:"stime"`
 }
 type SenderIntake struct {
   Message SenderMessage
