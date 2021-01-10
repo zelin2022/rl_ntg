@@ -19,8 +19,9 @@ type RecordKeeper struct {
 
 
 func (rk *RecordKeeper)Run (){
+  _ = os.Mkdir(p_RECORDKEEPER_PATH_TO_RECORD, 0700)
   var err error
-  rk.file, err = os.Create(p_RECORDKEEPER_PATH_TO_RECORD + myutil.TimeStamp_RC())
+  rk.file, err = os.Create(p_RECORDKEEPER_PATH_TO_RECORD + myutil.TimeStamp_RK())
   defer rk.file.Close()
   if err != nil{
     panic(err) // critical error

@@ -15,7 +15,7 @@ func TimeStamp() string {
   return time.Now().Format("2006-01-02 03:04:05.000")
 }
 
-func TimeStamp_RC() string {
+func TimeStamp_RK() string { //for recordkeeper
   return time.Now().Format("20060102030405")
 }
 

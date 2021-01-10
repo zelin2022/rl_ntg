@@ -8,7 +8,7 @@ import (
   "../myutil"
   "errors"
   "strconv"
-
+  "sort"
 )
 
 type MM struct {
@@ -46,8 +46,8 @@ func (mm *MM) run () {
           "\nmsg.SendTime: " + msg.SendTime +
           "\nmsg.RecvTime: " + msg.RecvTime + "\n")
       case msg := <- mm.Channels.ChanMS2MM:
+        mm.closeMatch(msg)
         log.Printf("Match finished: " + msg )
-        // remove finished match w/ mutex
 
       default:
         currentTime := myutil.GetCurrentEpochMilli()
@@ -86,28 +86,7 @@ func (mm *MM)attemptMatchMaking()(error){
     return errors.New("Match making failed (possibly not enough players) (current players in waiting:" +strconv.Itoa(len(mm.waitingAgents)) + ")")
   }
   log.Printf("Match found")
-  var playersToPlay []agent.Agent
-
-  for i := range playersPositionsInWait{
-    playersToPlay = append(playersToPlay, mm.waitingAgents[i])
-    // also add the players to in game
-    mm.inGameAgents = append(mm.inGameAgents, mm.waitingAgents[i])
-  }
-  // remove the players from waiting
-  mm.waitingAgents = agent.DeleteAgents(mm.waitingAgents, playersPositionsInWait)
-
-  matchChannels := match.ChannelBundle{
-    ChanMS2RK: mm.Channels.ChanMS2RK,
-    ChanMS2SE: mm.Channels.ChanMS2SE,
-    ChanMS2MM: mm.Channels.ChanMS2MM,
-    ChansLS2MS: make(chan channelstructs.ListenerOutput),
-  }
-
-  newMatch := match.Create(playersToPlay, matchChannels)
-  mm.pActiveMatches.Mutex.Lock()
-  mm.pActiveMatches.Matches = append(mm.pActiveMatches.Matches, newMatch)
-  mm.pActiveMatches.Mutex.Unlock()
-
+  mm.createMatch(playersPositionsInWait)
   return nil
 }
 
@@ -130,9 +109,9 @@ func (mm *MM)updateAgents(serverIn channelstructs.ListenerOutput) (error) {
   case p_HEADER_AGENT_SIGN_IN:
     err = mm.agentSignIn(theAgent)
   case p_HEADER_AGENT_WAITING:
-    err = mm.agentSignOut(theAgent)
-  case p_HEADER_AGENT_SIGN_OUT:
     err = mm.agentWaiting(theAgent)
+  case p_HEADER_AGENT_SIGN_OUT:
+    err = mm.agentSignOut(theAgent)
   default:
     err = errors.New("header is invalid")
   }
@@ -165,6 +144,60 @@ func (mm *MM)agentWaiting(myAgent agent.Agent)(error){
     mm.waitingAgents[pos] = myAgent // update anyway
   }
   return nil
+}
+
+// ==========================================
+
+func (mm *MM)createMatch(playersPositionsInWait []int){
+  // sort by descending order
+  sort.Slice(playersPositionsInWait, func(i,j int) bool{
+    return playersPositionsInWait[i] > playersPositionsInWait[j]
+  })
+
+  var playersToPlay []agent.Agent
+
+  log.Println("in")
+
+  for i := range playersPositionsInWait{
+    player := mm.waitingAgents[playersPositionsInWait[i]]
+    // fetch players to array from waiting players
+    playersToPlay = append(playersToPlay, player)
+    // delete players from waiting
+    // this is safe and won't mess with position because we sorted in descending order
+    mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, playersPositionsInWait[i])
+    // also add the players to in-game
+    mm.inGameAgents = append(mm.inGameAgents, player)
+  }
+
+  log.Println("out")
+
+  matchChannels := match.ChannelBundle{
+    ChanMS2RK: mm.Channels.ChanMS2RK,
+    ChanMS2SE: mm.Channels.ChanMS2SE,
+    ChanMS2MM: mm.Channels.ChanMS2MM,
+    ChansLS2MS: make(chan channelstructs.ListenerOutput),
+  }
+
+  newMatch := match.Create(playersToPlay, matchChannels)
+  mm.pActiveMatches.Mutex.Lock()
+  mm.pActiveMatches.Matches = append(mm.pActiveMatches.Matches, newMatch)
+  mm.pActiveMatches.Mutex.Unlock()
+}
+
+func (mm *MM)closeMatch(id string){
+  //delete match
+  var err error
+  mm.pActiveMatches.Mutex.Lock()
+  players := mm.pActiveMatches.Matches[match.FindMatchByAgentID(mm.pActiveMatches.Matches, id)].Players
+  mm.pActiveMatches.Matches, err = match.DeleteMatchByMatchID(mm.pActiveMatches.Matches, id)
+  mm.pActiveMatches.Mutex.Unlock()
+  if err != nil {
+    panic("Deleting match, but match not found in pActiveMatches")
+  }
+  // release players back to waiting
+  for i := range players{
+    mm.waitingAgents = append(mm.waitingAgents, players[i])
+  }
 }
 
 func dropAFK() (error){

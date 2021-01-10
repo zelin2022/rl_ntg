@@ -36,6 +36,15 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
   )
   myutil.FailOnError(err, "Failed to declare a queue")
 
+  purged, err := ch.QueuePurge(
+    listener_queue,
+    false, // no-wait
+  )
+  myutil.FailOnError(err, "Failed to purge queue")
+  if err == nil {
+    log.Printf("Purged %d number of messages from queue %s", purged, listener_queue)
+  }
+
   ChanConsumeCallback, err := ch.Consume(
     q.Name, // queue
     "",     // consumer

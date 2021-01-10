@@ -21,14 +21,14 @@ type AMQPListener struct{
 }
 
 func (ls *AMQPListener)Run() {
-  for {
+  for msg := range ls.Channels.ChanAMQP{
     log.Printf("select in")
-    select { // I think for this one, blocking is fine
-    case msg := <- ls.Channels.ChanAMQP:
-      log.Printf("Received a message: %s", msg.Body)
-      err := ls.processMessage(msg.Body, myutil.TimeStamp())
-      myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
-    }
+
+
+    log.Printf("Received a message: %s", msg.Body)
+    err := ls.processMessage(msg.Body, myutil.TimeStamp())
+    myutil.FailOnError(err, "Failed to processMessage" + string(msg.Body))
+
     log.Printf("select out")
   }
 }

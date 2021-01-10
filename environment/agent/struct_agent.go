@@ -18,7 +18,7 @@ func (a *Agent)RenewActive(){
 
 // finds first currance by matching ID
 func FindAgent(agents []Agent, agentID string) (bool, int) {
-  for i := 0; i < len(agents); i++{
+  for i := range agents{
     if agentID == agents[i].ID {
       return true, i
     }

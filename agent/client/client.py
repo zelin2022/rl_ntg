@@ -1,4 +1,5 @@
 from myamqp.myamqp import MyAmqp
+from datetime import datetime
 import json
 import logging
 import time
@@ -74,17 +75,21 @@ class Client:
         output = {}
         output["header"] = HEADER_AGENT_2_SERVER_MOVE
         output["body"] = json.dumps(body)
-        output["agentID"] = self.agentID
-        output["SendTime"] = int(time.time())
+        output["aid"] = self.agentID
+        output["stime"] = self.time_stamp()
         return json.dumps(output)
 
     def create_status_msg(self, status):
         output = {}
         output["header"] = status
         output["body"] = self.amqp.get_agent_queue()
-        output["agentID"] = self.agentID
-        output["SendTime"] = int(time.time())
+        output["aid"] = self.agentID
+        output["stime"] = self.time_stamp()
         return json.dumps(output)
+
+    @staticmethod
+    def time_stamp():
+        return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
 
 
@@ -100,6 +105,7 @@ class Client:
     def amqp_listener_callback(self, ch, method, properties, body):
         print(" [x] Received %r" % body)
         loaded_msg = json.loads(body)
+        print(loaded_msg)
         header_to_function={
         HEADER_SERVER_2_AGENT_START : self.recv_start_game,
         HEADER_SERVER_2_AGENT_MOVE : self.recv_others_move,

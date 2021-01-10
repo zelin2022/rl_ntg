@@ -188,7 +188,18 @@ func (m *Match) matchEnd(){
 
 
 func (m *Match) sendMatchToRecordKeeper(){
+  record := channelstructs.MatchRecord{
+    Players: agent.GetAllAgentIDs(m.Players),
+    StartTime: m.StartTime.Unix(),
+    EndTime: time.Now().Unix(),
+    Winner: m.TheGame.GetWinner(),
+  }
 
+  m.Channels.ChanMS2RK <- record
+}
+
+func (m *Match) signalEndToMM(){
+  m.Channels.ChanMS2MM <- m.ID // this is a many to one channel, MM will use ID to identify which match is over
 }
 
 /*
@@ -215,7 +226,16 @@ func (m *Match) timeoutCheck()bool{
 
 
 
-
+func DeleteMatchByMatchID(matches []Match, id string)([]Match, error){
+  for i := range matches{
+    if matches[i].ID == id {
+      // swap and return
+      matches[i] = matches[ len(matches)-1 ]
+      return matches[ :len(matches)-1 ], nil
+    }
+  }
+  return matches, nil
+}
 
 // HELPR METHOD
 func FindMatchByAgentID(matches []Match, agentID string)(int){

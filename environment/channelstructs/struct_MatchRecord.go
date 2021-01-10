@@ -7,8 +7,10 @@ import (
 )
 
 type MatchRecord struct {
-  Players []string
-  Winner string
+  Players []string `json="players"`
+  StartTime int64 `json="start_time"`
+  EndTime int64 `json="end_time"`
+  Winner string `json="winner"`
 }
 
 func (mr *MatchRecord) ToString()string{
