@@ -1,6 +1,9 @@
 package game
 
 import(
+  "../myutil"
+  "errors"
+  "fmt"
 )
 
 type Game struct{
@@ -9,6 +12,7 @@ type Game struct{
 }
 
 func NewGame( players []string)Game{
+
   // create a new blank game
   newGame := Game{
     Players: players,
@@ -40,11 +44,15 @@ func (g *Game)TryMove(move string, hash string) error{ // hash is to verify boar
   backup := *g.state
   err := g.state.doMove(move)
   if err != nil{
+    myutil.FailOnError(err, "g.state.doMove() failed, reverting to backup")
     g.state = &backup
     return err
   }
   if g.getHash() != hash {
     g.state = &backup
+    errString := fmt.Sprintf("hash comparison failed %s %s", g.getHash(), hash)
+    err = errors.New(errString)
+    myutil.FailOnError(err, "hash comparison failed, reverting to backup")
     return err
   }
   return nil

@@ -19,6 +19,7 @@ type Match struct {
   TheGame game.Game
   StartTime time.Time
   roundStartTime int64
+  moveHistory []string // for record keeper
 }
 
 func (m *Match) run () {
@@ -131,6 +132,8 @@ func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
     // and use timeout to penalize the player
     return errors.New("Error move failed. Player has made an INVALID move.")
   }
+  // add move to move history for record keeping
+  m.moveHistory = append(m.moveHistory, info.Move)
   return nil
 }
 
@@ -196,6 +199,7 @@ func (m *Match) sendMatchToRecordKeeper(){
     StartTime: m.StartTime.Unix(),
     EndTime: time.Now().Unix(),
     Winner: m.TheGame.GetWinner(),
+    Moves: m.moveHistory,
   }
 
   m.Channels.ChanMS2RK <- record

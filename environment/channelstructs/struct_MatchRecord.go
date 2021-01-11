@@ -11,6 +11,7 @@ type MatchRecord struct {
   StartTime int64 `json="start_time"`
   EndTime int64 `json="end_time"`
   Winner string `json="winner"`
+  Moves []string `json="moves"`
 }
 
 func (mr *MatchRecord) ToString()string{

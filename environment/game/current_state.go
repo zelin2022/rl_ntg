@@ -4,6 +4,7 @@ import (
   "fmt"
   "strconv"
   "errors"
+  "log"
 )
 /*
   this is the first iteration, in this game we play a simple Nim game
@@ -60,6 +61,8 @@ func (cs *currentState)doMove(move string)error{
 
   // Step #3 Make move
   cs.board -= toReduce8
+
+  log.Printf("Last move: %d Current board: %d", toReduce8, cs.board)
 
   // Step #4 update other things
   cs.currentMoveCount += 1
