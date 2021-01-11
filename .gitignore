@@ -4,3 +4,5 @@
 /gotest/
 /record/
 /archive/
+
+__pycache__/
