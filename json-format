@@ -21,6 +21,7 @@ body:
 
 status
 # body for status is its queue
+# should be turned into json if we need to send any more stuff
 
 start
 {
@@ -31,14 +32,11 @@ start
 move
 {
   "move":
-  "num":
+  "movenum":
   'hash':
 }
 
 end
 {
-  "move":
-  "num":
-  "hash":
   "winner":
 }

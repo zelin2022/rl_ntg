@@ -1,4 +1,5 @@
 from myamqp.myamqp import MyAmqp
+from game.game import Game
 from datetime import datetime
 import json
 import logging
@@ -34,7 +35,7 @@ class Client:
         self.amqp.setup()
         self.ingame = False
         self.next_waiting_send_time = 0
-        self.game = None
+        self.game = Game()
 
     def run(self):
         logging.info("Client.run has started")
@@ -111,7 +112,9 @@ class Client:
         HEADER_SERVER_2_AGENT_MOVE : self.recv_others_move,
         HEADER_SERVER_2_AGENT_END : self.recv_end_game,
         }
-        header_to_function[loaded_msg.header](loaded_msg)
+        loaded_body = json.loads(loaded_msg["body"])
+        print(loaded_body)
+        header_to_function[loaded_msg["header"]](loaded_body)
 
 #######################################################
 
@@ -120,7 +123,7 @@ class Client:
         self.game.new_game(msg, self.agentID)
 
     def recv_others_move(self, msg):
-        self.game.update_with_others_move(msg.move)
+        self.game.update_with_others_move(msg)
 
     def recv_end_game(self, msg):
         self.ingame = False

@@ -168,6 +168,7 @@ func (m *Match) broadcastEndToAllPlayers(){
       Body: (&MatchEndInfo{
         Winner: m.TheGame.GetWinner(),   // potentially multiple winners
       }).ToString(),
+      SendTime: time.Now().Unix(),
     },
     AgentsToSend: m.Players,
   }
@@ -183,6 +184,8 @@ func (m *Match) broadcastEndToAllPlayers(){
 
 func (m *Match) matchEnd(){
   // send to record keeper and match
+  m.sendMatchToRecordKeeper()
+  m.signalEndToMM()
 }
 
 

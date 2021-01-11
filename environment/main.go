@@ -18,6 +18,8 @@ func main() {
   // add milliseconds logger timestamp
   log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
+  log.Println("Starting...")
+
   // create all channels
   // listener => matchmaking
   chanLS2MM := make(chan channelstructs.ListenerOutput)

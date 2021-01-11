@@ -54,7 +54,7 @@ func (mm *MM) run () {
         timeDiff := nextSelfUpdateTime - currentTime
         if timeDiff <= 0  {
           err = mm.selfUpdate()
-          myutil.FailOnError(err, "MatchMaking, selfUpdate")
+          myutil.FailOnError(err, "mm.selfUpdate() failed")
           // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
           if err != nil { // else we induce sleep
             nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
@@ -156,8 +156,6 @@ func (mm *MM)createMatch(playersPositionsInWait []int){
 
   var playersToPlay []agent.Agent
 
-  log.Println("in")
-
   for i := range playersPositionsInWait{
     player := mm.waitingAgents[playersPositionsInWait[i]]
     // fetch players to array from waiting players
@@ -168,8 +166,6 @@ func (mm *MM)createMatch(playersPositionsInWait []int){
     // also add the players to in-game
     mm.inGameAgents = append(mm.inGameAgents, player)
   }
-
-  log.Println("out")
 
   matchChannels := match.ChannelBundle{
     ChanMS2RK: mm.Channels.ChanMS2RK,

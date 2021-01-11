@@ -12,8 +12,8 @@ type MatchStartInfo struct {
 }
 
 type MatchMoveInfo struct {
-  MoveNum uint8 `json:"move"`
-  Move string `json:"num"`
+  Move string `json:"move"`
+  MoveNum uint8 `json:"movenum"`
   AfterMoveHash string `json:"hash"`
 }
 
