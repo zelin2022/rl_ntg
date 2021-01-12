@@ -69,3 +69,7 @@ func (g *Game)GetWinner() string{
 func (g *Game)PlayerResign(){
   g.state.playerResign()
 }
+
+func (g *Game)IsResigned()bool{
+  return g.state.isResigned
+}

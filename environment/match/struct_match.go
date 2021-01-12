@@ -1,5 +1,6 @@
 package match
 import (
+  "fmt"
   "time"
   "errors"
   "../game"
@@ -20,6 +21,7 @@ type Match struct {
   StartTime time.Time
   roundStartTime int64
   moveHistory []string // for record keeper
+  winReason string
 }
 
 func (m *Match) run () {
@@ -87,6 +89,11 @@ func (m *Match) matchUnderway(){
       m.broadcastMoveToAllPlayers(moveReceived.Body)
       // check for a win
       if m.TheGame.CheckWinCondition(){ // if a game is over, broadcast to all agents then return
+        if m.TheGame.IsResigned(){ // if  resigned, then one player forfeited, otherwise, one player reached win condition
+          m.winReason = fmt.Sprintf("%s won because other player resigned", m.TheGame.GetWinner())
+        }else{
+          m.winReason = fmt.Sprintf("%s won by reaching winning condition", m.TheGame.GetWinner())
+        }
         m.broadcastEndToAllPlayers()
         return
       }
@@ -97,14 +104,12 @@ func (m *Match) matchUnderway(){
     default:
       if m.timeoutCheck(){ // if a time out happens
         m.TheGame.PlayerResign() // resign the current player
+        m.winReason = fmt.Sprintf("%s won because other player timed out", m.TheGame.GetWinner())
         m.broadcastEndToAllPlayers() // tell everyone game has ended
         return
       }
     }
-
   }
-
-
 }
 
 func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
@@ -199,6 +204,7 @@ func (m *Match) sendMatchToRecordKeeper(){
     StartTime: m.StartTime.Unix(),
     EndTime: time.Now().Unix(),
     Winner: m.TheGame.GetWinner(),
+    WinReason: m.winReason,
     Moves: m.moveHistory,
   }
 
