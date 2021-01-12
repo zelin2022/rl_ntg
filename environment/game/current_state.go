@@ -18,17 +18,12 @@ type currentState struct {
 
   // meta_data
   lastValidMove string
+  players []string
   maxPlayer uint8
   isResigned bool
   resignedPlayer uint8
   winner uint8 // potentially []uint8 if multiple winner
   // do not allow draw
-}
-
-
-func (cs *currentState)toString() string {
-  // disregard meta-info
-  return fmt.Sprintf("%d,%d,%d", cs.currentPlayer, cs.currentMoveCount, cs.board)
 }
 
 func (cs *currentState)doMove(move string)error{

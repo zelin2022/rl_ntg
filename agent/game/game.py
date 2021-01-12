@@ -36,31 +36,32 @@ class Game:
         move_struct = {}
         move_struct["move"] = str(move)
         move_struct["movenum"] = self.move_count
-        move_struct["hash"] = self.get_hash()
 
         self.move_count += 1
         self.players_to_move = (self.players_to_move + 1) % len(self.players)
         self.i_just_moved = True
+
+        move_struct["hash"] = self.get_hash()
+
         return move_struct
 
 
 
 
     def update_with_others_move(self, params):
-        print(params)
         if self.i_just_moved:
             self.i_just_moved = False
             return
         if params["movenum"] == self.move_count:
             self.apply_others_move(params["move"])
-            print(params)
+            self.move_count += 1
+            self.players_to_move = (self.players_to_move + 1) % len(self.players)
             if self.get_hash() != params["hash"]:
                 # potentially respond?
-                raise ValueError("hash mismatch")
+                raise ValueError("hash mismatch\nmy hash: %s\nmy state string: %s\ntheir hash: %s\n" % (self.get_hash(), self.get_state_string, params["hash"]))
             else:
                 print("hash matches correctly, hash: %s" % params["hash"])
-                self.move_count += 1
-                self.players_to_move = (self.players_to_move + 1) % len(self.players)
+
         else:
             raise ValueError("move_num mismatch, received %d expecting %d " % (params["movenum"], self.move_count))
 
@@ -74,4 +75,4 @@ class Game:
         return hasher.hexdigest()
 
     def get_state_string(self): # the output of this is used for hash
-        return "%d,%d,%d" % (self.players_to_move, self.move_count, self.board)
+        return "%s,%d,%d" % (self.players[self.players_to_move], self.move_count, self.board)

@@ -83,10 +83,15 @@ func (m *Match) matchUnderway(){
       if err != nil{
         // send a response to agent
         // or end game/match directly
+
+        // in this case do nothing and skip to next
+        myutil.FailOnError(err, "doMove() failed, will continue")
+        continue
       }
       // send move message to all players
       // since these games are perfect information, we can just forward a players' move to all players
       m.broadcastMoveToAllPlayers(moveReceived.Body)
+
       // check for a win
       if m.TheGame.CheckWinCondition(){ // if a game is over, broadcast to all agents then return
         if m.TheGame.IsResigned(){ // if  resigned, then one player forfeited, otherwise, one player reached win condition
@@ -124,7 +129,7 @@ func (m *Match) doMove(serverMoveNum uint8, info MatchMoveInfo) error {
   }
 
   // forward the move to game
-  moveErr := m.TheGame.TryMove(info.Move, info.AfterMoveHash)
+  moveErr := m.TheGame.TryMove(info.Move, info.StateHash)
   if moveErr != nil{
     // this is different than previous errors in this section
     // previous errors would be system errors

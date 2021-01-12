@@ -21,6 +21,7 @@ func NewGame( players []string)Game{
       currentMoveCount: 0,
       board: p_GAME_INITIAL_BOARD_NIM,
       lastValidMove: "",
+      players: players,
       maxPlayer: uint8(len(players)),
       isResigned: false,
       resignedPlayer: 0,
@@ -42,19 +43,22 @@ func (g *Game)TryMove(move string, hash string) error{ // hash is to verify boar
     first create a backup, in case currentState fails move
   */
   backup := *g.state
+
   err := g.state.doMove(move)
   if err != nil{
     myutil.FailOnError(err, "g.state.doMove() failed, reverting to backup")
     g.state = &backup
     return err
   }
+
   if g.getHash() != hash {
     g.state = &backup
-    errString := fmt.Sprintf("hash comparison failed %s %s", g.getHash(), hash)
+    errString := fmt.Sprintf("hash comparison failed\nmy hash: %s\nmy state string: %s\ntheir hash: %s\n", g.getHash(), g.state.getStateString(), hash)
     err = errors.New(errString)
     myutil.FailOnError(err, "hash comparison failed, reverting to backup")
     return err
   }
+
   return nil
 }
 
