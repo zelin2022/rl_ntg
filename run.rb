@@ -1,3 +1,5 @@
+require 'fileutils'
+
 def kill_process_by_name name
   out = `ps aux | grep #{name}`
   out.each_line do |line|
@@ -13,6 +15,15 @@ if __FILE__ == $0
   # Dir.mkdir("log/#{execute_time}")
   Dir.mkdir("log/current") unless Dir.exist? "log/current"
   # `mkdir log/#{execute_time}`
+
+  # clean up record
+  record_dir = File.join(__dir__, 'record')
+  old_record_dir = File.join(record_dir, 'old_record')
+  FileUtils.mkdir_p(old_record_dir) unless File.directory?(old_record_dir)
+  Dir.new(record_dir).each {|file|
+    file = File.join(record_dir, file)
+    FileUtils.mv(file, old_record_dir) if File.file? file
+  }
 
   # start env
   #env_id = spawn "go run environment/main.go > log/#{execute_time}/environment.log 2>&1"
