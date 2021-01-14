@@ -196,6 +196,8 @@ func (m *Match) broadcastEndToAllPlayers(){
 */
 
 func (m *Match) matchEnd(){
+  //close channel with listener so listener doesn't hang trying to send
+  close(m.Channels.ChansLS2MS)
   // send to record keeper and match
   m.sendMatchToRecordKeeper()
   m.signalEndToMM()
@@ -242,17 +244,25 @@ func (m *Match) timeoutCheck()bool{
 
 
 
-
+func FindMatchByMatchID (matches []Match, id string)(int){
+  for i:= range matches{
+    if matches[i].ID == id{
+      return i
+    }
+  }
+  return -1
+}
 
 func DeleteMatchByMatchID(matches []Match, id string)([]Match, error){
   for i := range matches{
     if matches[i].ID == id {
+      log.Printf("Match to delete found, deleting %d", id)
       // swap and return
       matches[i] = matches[ len(matches)-1 ]
       return matches[ :len(matches)-1 ], nil
     }
   }
-  return matches, nil
+  return matches, errors.New("no match found by this id" + id)
 }
 
 // HELPR METHOD

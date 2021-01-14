@@ -37,34 +37,40 @@ func (mm *MM) run () {
   for {
     log.Print("================MM================")
     select {
-      case msg := <- mm.Channels.ChanLS2MM: // from amqplistener, tells you some agent satus
-        log.Printf(myutil.TimeStamp() + " MM Receive: src:ChanLS2MM, header:" + msg.Header + ", agent:" + msg.AgentID)
-        err = mm.updateAgents(msg)
-        myutil.FailOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
-          "\nmsg.AgentID: " + msg.AgentID +
-          "\nmsg.Body: " + msg.Body +
-          "\nmsg.SendTime: " + msg.SendTime +
-          "\nmsg.RecvTime: " + msg.RecvTime + "\n")
-      case msg := <- mm.Channels.ChanMS2MM:
-        mm.closeMatch(msg)
-        log.Printf("Match finished: " + msg )
+    case msg := <- mm.Channels.ChanMS2MM:
+      log.Printf("Match finished: " + msg )
+      mm.closeMatch(msg)
+      log.Printf("Match closed: " + msg )
+      break
+    default:
+      break
+    }
 
-      default:
-        currentTime := myutil.GetCurrentEpochMilli()
-        timeDiff := nextSelfUpdateTime - currentTime
-        if timeDiff <= 0  {
-          err = mm.selfUpdate()
-          myutil.FailOnError(err, "mm.selfUpdate() failed")
-          // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
-          if err != nil { // else we induce sleep
-            nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
-          }
-
+    select {
+    case msg := <- mm.Channels.ChanLS2MM: // from amqplistener, tells you some agent satus
+      log.Printf(myutil.TimeStamp() + " MM Receive: src:ChanLS2MM, header:" + msg.Header + ", agent:" + msg.AgentID)
+      err = mm.updateAgents(msg)
+      myutil.FailOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
+        "\nmsg.AgentID: " + msg.AgentID +
+        "\nmsg.Body: " + msg.Body +
+        "\nmsg.SendTime: " + msg.SendTime +
+        "\nmsg.RecvTime: " + msg.RecvTime + "\n")
+      break
+    default:
+      currentTime := myutil.GetCurrentEpochMilli()
+      timeDiff := nextSelfUpdateTime - currentTime
+      if timeDiff <= 0  {
+        err = mm.selfUpdate()
+        myutil.FailOnError(err, "mm.selfUpdate() failed")
+        // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
+        if err != nil { // else we induce sleep
+          nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
+        }
         }else{
           myutil.Sleep("matchmaking", timeDiff)
         }
-
-    }
+        break
+      }
   }
 }
 
@@ -184,15 +190,15 @@ func (mm *MM)closeMatch(id string){
   //delete match
   var err error
   mm.pActiveMatches.Mutex.Lock()
-  players := mm.pActiveMatches.Matches[match.FindMatchByAgentID(mm.pActiveMatches.Matches, id)].Players
+  players := mm.pActiveMatches.Matches[match.FindMatchByMatchID(mm.pActiveMatches.Matches, id)].Players
   mm.pActiveMatches.Matches, err = match.DeleteMatchByMatchID(mm.pActiveMatches.Matches, id)
   mm.pActiveMatches.Mutex.Unlock()
   if err != nil {
     panic("Deleting match, but match not found in pActiveMatches")
   }
-  // release players back to waiting
+  // release players back to online
   for i := range players{
-    mm.waitingAgents = append(mm.waitingAgents, players[i])
+    mm.onlineAgents = append(mm.onlineAgents, players[i])
   }
 }
 

@@ -27,8 +27,10 @@ func main() {
   chanMS2RK := make(chan channelstructs.MatchRecord)
   // matches => sender
   chanMS2SE := make(chan channelstructs.SenderIntake)
-  // mcathcmkaing => sender
+  // matchcmkaing => sender
   chanMM2SE := make(chan channelstructs.SenderIntake)
+  // matches => matchmaking
+  chanMS2MM := make(chan string)
 
 
 
@@ -39,6 +41,7 @@ func main() {
     ChanMS2RK: chanMS2RK,
     ChanMS2SE: chanMS2SE,
     ChanMM2SE: chanMM2SE,
+    ChanMS2MM: chanMS2MM,
   }
 
 

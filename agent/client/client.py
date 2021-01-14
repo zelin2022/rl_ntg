@@ -61,6 +61,9 @@ class Client:
         else:
             return False
 
+    def reset_next_waiting_send_time(self): # when game start we call this, so agent sends watiing as soon as game is over
+        self.next_waiting_send_time = 0
+
 #######################################################
 
 
@@ -121,6 +124,7 @@ class Client:
     def recv_start_game(self, msg):
         self.ingame = True
         self.game.new_game(msg, self.agentID)
+        self.reset_next_waiting_send_time()
 
     def recv_others_move(self, msg):
         self.game.update_with_others_move(msg)

@@ -30,7 +30,6 @@ func (ls *AMQPListener)Run() {
 
 
 func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
-
   var serverIn channelstructs.ListenerOutput
   err := json.Unmarshal([]byte(body), &serverIn)
   if err != nil {
@@ -53,10 +52,20 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
     if match_pos < 0 {
       return errors.New("received move this agent ID: " + serverIn.AgentID + "\nbut this agent is not in match")
     }
-    ls.PActiveMatches.Matches[match_pos].Channels.ChansLS2MS <- serverIn
+    TrySendToPotentiallyClosedChannel(ls.PActiveMatches.Matches[match_pos].Channels.ChansLS2MS, serverIn)
   default:
 
   }
 
   return err
+}
+
+func TrySendToPotentiallyClosedChannel(channel chan<- channelstructs.ListenerOutput, msg channelstructs.ListenerOutput){
+  defer func(){
+    if r := recover(); r != nil{
+      log.Printf("Listener recovered a panic: %v", r)
+    }
+  }()
+
+  channel <- msg
 }
