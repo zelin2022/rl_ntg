@@ -62,7 +62,6 @@ func (mm *MM) run () {
       timeDiff := nextSelfUpdateTime - currentTime
       if timeDiff <= 0  {
         err = mm.selfUpdate()
-        myutil.FailOnError(err, "mm.selfUpdate() failed")
         // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
         if err != nil { // else we induce sleep
           nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
@@ -82,7 +81,7 @@ func (mm *MM)selfUpdate()error{
     myutil.FailOnError(err, "MM.dropAFK failed")
     err = mm.attemptMatchMaking()
     myutil.FailOnError(err, "MM.attemptMatchMaking failed")
-    return nil
+    return err
 }
 
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
@@ -111,7 +110,6 @@ func (mm *MM)updateAgents(serverIn channelstructs.ListenerOutput) (error) {
   var theAgent agent.Agent
   theAgent.ID = serverIn.AgentID
   theAgent.Queue = serverIn.Body   // for status message, body is straight up agent_queue?
-  theAgent.RenewActive()
   switch serverIn.Header {
   case p_HEADER_AGENT_SIGN_IN:
     err = mm.agentSignIn(theAgent)
@@ -200,8 +198,10 @@ func (mm *MM)closeMatch(id string){
   }
   // release players back to online
   for i := range players{
-    err = mm.agentWaiting(players[i])
-    myutil.FailOnError(err, "Failed to put agent back into waiting")
+    mm.inGameAgents, err = agent.DeleteAgentByID(mm.inGameAgents, players[i].ID)
+    if err != nil {
+      myutil.FailOnError(err, "Failed to return agent back to inGameAgents")
+    }
   }
 }
 

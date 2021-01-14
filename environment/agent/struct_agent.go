@@ -1,17 +1,11 @@
 package agent
 import (
-  "time"
+  "errors"
 )
 
 type Agent struct {
   ID string
   Queue string
-  LastActive time.Time
-}
-
-
-func (a *Agent)RenewActive(){
-  a.LastActive = time.Now()
 }
 
 // HELPER METHODS ==============================================================================
@@ -30,6 +24,16 @@ func FindAgent(agents []Agent, agentID string) (bool, int) {
 func DeleteAgent(agents []Agent, position int) []Agent {
   agents[position] = agents[len(agents) - 1] // swap last element to element to delete
   return agents[:len(agents) - 1] // return slice with last element excluded
+}
+
+func DeleteAgentByID(agents []Agent, id string)([]Agent, error){
+  for i := range agents{
+    if agents[i].ID == id{
+      agents[i] = agents[len(agents)-1]
+      return agents[:len(agents)-1], nil
+    }
+  }
+  return agents, errors.New("ID not found, ID: " + id)
 }
 
 // check if a slice of ints contains a specific int
