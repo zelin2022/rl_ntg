@@ -9,5 +9,8 @@ if __name__ == "__main__":
     logging.info("Start")
 
     from client.client import Client
-    client = Client()
+    pretext_id = 'x'
+    if len(sys.argv) >= 2:
+        pretext_id = sys.argv[1]
+    client = Client(pretext_id)
     client.run()

@@ -28,9 +28,9 @@ HEADER_SERVER_2_AGENT_MOVE = "move"
 HEADER_SERVER_2_AGENT_END = "game end"
 
 class Client:
-    def __init__(self):
+    def __init__(self, pre_id):
         import uuid
-        self.agentID = str(uuid.uuid4())
+        self.agentID = pre_id + '-' + str(uuid.uuid4())
         self.amqp = MyAmqp(QUEUE_AGENT_2_SERVER, self.amqp_listener_callback)
         self.amqp.setup()
         self.ingame = False

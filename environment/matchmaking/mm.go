@@ -17,7 +17,6 @@ type MM struct {
   waitingAgents []agent.Agent
   pActiveMatches *match.ActiveMatches
   Channels ChannelBundle
-  minimumWaitTimeForAnotherMatchMaking float64
 }
 
 type ChannelBundle struct{
@@ -30,7 +29,7 @@ type ChannelBundle struct{
 
 func (mm *MM) run () {
   var err error
-  var minDiffSelfUpdateTime int64 = int64(mm.minimumWaitTimeForAnotherMatchMaking * 1000)
+  var minDiffSelfUpdateTime int64 = int64(p_MinimumWaitTimeForAnotherMatchMaking * 1000)
   nextSelfUpdateTime := myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
 
 

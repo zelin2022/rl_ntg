@@ -36,7 +36,7 @@ if __FILE__ == $0
   agents_id = []
   for i in (1..ARGV[0].to_i)
     #agents_id.append(spawn("python3 agent/main.py > log/#{execute_time}/agent#{i}.log 2>&1"))
-    agents_id.append(spawn("python3 agent/main.py > log/current/agent#{i}.log 2>&1")) #DEBUG
+    agents_id.append(spawn("python3 agent/main.py #{i} > log/current/agent#{i}.log 2>&1")) #DEBUG
   end
 
   # at_exit{
