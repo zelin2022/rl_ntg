@@ -6,4 +6,6 @@ const(
   p_HEADER_AGENT_SIGN_OUT string = "sign out"
 
   p_MinimumWaitTimeForAnotherMatchMaking float64 = 2.5
+
+  p_WaitingTimeoutSecondsAgo int64 = 10
 )

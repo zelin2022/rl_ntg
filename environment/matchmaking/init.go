@@ -7,8 +7,11 @@ import (
 
 
 func Create(channels ChannelBundle, activeMatches *match.ActiveMatches){
-  var mm MM
-  mm.Channels = channels
-  mm.pActiveMatches = activeMatches
+  mm := MM{
+    Channels: channels,
+    pActiveMatches: activeMatches,
+    agentLastWaitingStatusTime: make(map[string]int64),
+  }
+
   go mm.run()
 }

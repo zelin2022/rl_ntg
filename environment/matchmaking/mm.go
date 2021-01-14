@@ -9,6 +9,7 @@ import (
   "errors"
   "strconv"
   "sort"
+  "time"
 )
 
 type MM struct {
@@ -17,6 +18,7 @@ type MM struct {
   waitingAgents []agent.Agent
   pActiveMatches *match.ActiveMatches
   Channels ChannelBundle
+  agentLastWaitingStatusTime map[string]int64
 }
 
 type ChannelBundle struct{
@@ -76,11 +78,11 @@ func (mm *MM) run () {
 func (mm *MM)selfUpdate()error{
     // first drop afks before matchmaking
     var err error
-    err = dropAFK()
+    err = mm.dropAFK()
     myutil.FailOnError(err, "MM.dropAFK failed")
     err = mm.attemptMatchMaking()
     myutil.FailOnError(err, "MM.attemptMatchMaking failed")
-    return err
+    return nil
 }
 
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
@@ -148,6 +150,7 @@ func (mm *MM)agentWaiting(myAgent agent.Agent)(error){
   } else {
     mm.waitingAgents[pos] = myAgent // update anyway
   }
+  mm.agentLastWaitingStatusTime[myAgent.ID] = time.Now().Unix()
   return nil
 }
 
@@ -197,12 +200,21 @@ func (mm *MM)closeMatch(id string){
   }
   // release players back to online
   for i := range players{
-    mm.onlineAgents = append(mm.onlineAgents, players[i])
+    err = mm.agentWaiting(players[i])
+    myutil.FailOnError(err, "Failed to put agent back into waiting")
   }
 }
 
-func dropAFK() (error){
-  //pass
-  log.Print("dropAFK() holder")
+func (mm *MM)dropAFK() (error){
+  var cutOffTime int64 = time.Now().Unix() - p_WaitingTimeoutSecondsAgo
+  for i := range mm.waitingAgents{
+    if mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID] < cutOffTime{ // if last waiting is before...
+      log.Printf("Dropping Agent %s for being AFK, last waiting was %d and cutoff is %d", mm.waitingAgents[i].ID, mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID], cutOffTime)
+      // drop agent
+      mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, i)
+      // potentially delete agent from onlineAgents too
+      // however sicne we don't use onlineAgents for anything, we don't need to
+    }
+  }
   return nil
 }

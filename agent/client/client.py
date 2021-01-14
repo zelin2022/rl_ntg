@@ -22,6 +22,7 @@ import time
 # }
 QUEUE_AGENT_2_SERVER = "server_in_0"
 LISTENING_TIMEOUT = 5
+MIN_TIME_TO_SEND_NEXT_WAITING = 3
 HEADER_AGENT_2_SERVER_MOVE = "move"
 HEADER_SERVER_2_AGENT_START = "game start"
 HEADER_SERVER_2_AGENT_MOVE = "move"
@@ -42,7 +43,7 @@ class Client:
         self.send_sign_in()
         self.hook_send_sign_out()
         while True:
-            self.amqp.try_recv(5)
+            self.amqp.try_recv(LISTENING_TIMEOUT)
             if not self.ingame:
                 logging.info("not in game")
                 if self.should_send_waiting():
@@ -56,7 +57,7 @@ class Client:
     def should_send_waiting(self):
         current_time = int(time.time())
         if current_time > self.next_waiting_send_time:
-            self.next_waiting_send_time = current_time + LISTENING_TIMEOUT
+            self.next_waiting_send_time = current_time + MIN_TIME_TO_SEND_NEXT_WAITING
             return True
         else:
             return False
