@@ -256,7 +256,7 @@ func FindMatchByMatchID (matches []Match, id string)(int){
 func DeleteMatchByMatchID(matches []Match, id string)([]Match, error){
   for i := range matches{
     if matches[i].ID == id {
-      log.Printf("Match to delete found, deleting %d", id)
+      log.Printf("Match to delete found, deleting %s", id)
       // swap and return
       matches[i] = matches[ len(matches)-1 ]
       return matches[ :len(matches)-1 ], nil
