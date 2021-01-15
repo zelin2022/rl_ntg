@@ -133,12 +133,13 @@ func (mm *MM)agentSignIn(myAgent agent.Agent) (error){
 }
 
 func (mm *MM)agentSignOut(myAgent agent.Agent)(error){
+  var err error
   found, pos := agent.FindAgent(mm.onlineAgents, myAgent.ID)
   if !found {
     return errors.New("agentSignOut, but agent is not online")
   }
-  mm.onlineAgents = agent.DeleteAgent(mm.onlineAgents, pos)
-  return nil
+  mm.onlineAgents, err = agent.DeleteAgent(mm.onlineAgents, pos)
+  return err
 }
 
 func (mm *MM)agentWaiting(myAgent agent.Agent)(error){
@@ -162,13 +163,15 @@ func (mm *MM)createMatch(playersPositionsInWait []int){
 
   var playersToPlay []agent.Agent
 
+  var err error
   for i := range playersPositionsInWait{
     player := mm.waitingAgents[playersPositionsInWait[i]]
     // fetch players to array from waiting players
     playersToPlay = append(playersToPlay, player)
     // delete players from waiting
     // this is safe and won't mess with position because we sorted in descending order
-    mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, playersPositionsInWait[i])
+    mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, playersPositionsInWait[i])
+    myutil.FailOnError(err, "Error while deleting from waitingAgents")
     // also add the players to in-game
     mm.inGameAgents = append(mm.inGameAgents, player)
   }
@@ -206,12 +209,14 @@ func (mm *MM)closeMatch(id string){
 }
 
 func (mm *MM)dropAFK() (error){
+  var err error
   var cutOffTime int64 = time.Now().Unix() - p_WaitingTimeoutSecondsAgo
   for i := range mm.waitingAgents{
     if mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID] < cutOffTime{ // if last waiting is before...
       log.Printf("Dropping Agent %s for being AFK, last waiting was %d and cutoff is %d", mm.waitingAgents[i].ID, mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID], cutOffTime)
       // drop agent
-      mm.waitingAgents = agent.DeleteAgent(mm.waitingAgents, i)
+      mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, i)
+      myutil.FailOnError(err, "Error while dropping agents from waitingAgents")
       // potentially delete agent from onlineAgents too
       // however sicne we don't use onlineAgents for anything, we don't need to
     }
