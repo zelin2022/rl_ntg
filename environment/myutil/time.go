@@ -5,12 +5,6 @@ import (
   "time"
 )
 
-func FailOnError(err error, msg string) {
-  if err != nil {
-    log.Printf(msg + "\n" + err.Error())
-  }
-}
-
 func TimeStamp() string {
   return time.Now().Format("2006-01-02 03:04:05.000")
 }

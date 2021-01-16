@@ -193,11 +193,16 @@ func (mm *MM)closeMatch(id string){
   //delete match
   var err error
   mm.pActiveMatches.Mutex.Lock()
-  players := mm.pActiveMatches.Matches[match.FindMatchByMatchID(mm.pActiveMatches.Matches, id)].Players
+  pos, err := match.FindMatchByMatchID(mm.pActiveMatches.Matches, id)
+  if err != nil {
+    mm.pActiveMatches.Mutex.Unlock()
+    panic("Error when finding match by match ID")
+  }
+  players := mm.pActiveMatches.Matches[pos].Players
   mm.pActiveMatches.Matches, err = match.DeleteMatchByMatchID(mm.pActiveMatches.Matches, id)
   mm.pActiveMatches.Mutex.Unlock()
   if err != nil {
-    panic("Deleting match, but match not found in pActiveMatches")
+    panic("Error when deleting match by match ID")
   }
   // release players back to online
   for i := range players{

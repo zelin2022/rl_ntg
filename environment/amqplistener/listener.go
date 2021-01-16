@@ -7,7 +7,6 @@ import (
   "../channelstructs"
   "encoding/json"
   "../match"
-  "errors"
 )
 
 type ChannelBundle struct{
@@ -47,10 +46,10 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
     ls.Channels.ChanLS2MM <- serverIn
   case p_HEADER_AGENT_MOVE: // send to match
     ls.PActiveMatches.Mutex.Lock()
-    match_pos := match.FindMatchByAgentID(ls.PActiveMatches.Matches, serverIn.AgentID)
+    match_pos, err2 := match.FindMatchByAgentID(ls.PActiveMatches.Matches, serverIn.AgentID)
     ls.PActiveMatches.Mutex.Unlock()
-    if match_pos < 0 {
-      return errors.New("received move this agent ID: " + serverIn.AgentID + "\nbut this agent is not in match")
+    if err2 != nil {
+      return err2
     }
     TrySendToPotentiallyClosedChannel(ls.PActiveMatches.Matches[match_pos].Channels.ChansLS2MS, serverIn)
   default:
