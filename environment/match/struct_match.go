@@ -244,36 +244,35 @@ func (m *Match) timeoutCheck()bool{
 
 
 
-func FindMatchByMatchID (matches []Match, id string)(int){
+func FindMatchByMatchID (matches []Match, id string)(int, error){
   for i:= range matches{
     if matches[i].ID == id{
-      return i
+      return i, nil
     }
   }
-  return -1
+  return -1, errors.New("Failed to find Match by match ID:  " + id)
 }
 
 func DeleteMatchByMatchID(matches []Match, id string)([]Match, error){
   for i := range matches{
     if matches[i].ID == id {
-      log.Printf("Match to delete found, deleting %s", id)
       // swap and return
       matches[i] = matches[ len(matches)-1 ]
       return matches[ :len(matches)-1 ], nil
     }
   }
-  return matches, errors.New("no match found by this id" + id)
+  return matches, errors.New("Failed to delete match by match id" + id)
 }
 
 // HELPR METHOD
-func FindMatchByAgentID(matches []Match, agentID string)(int){
+func FindMatchByAgentID(matches []Match, agentID string)(int, error){
   for  i := 0; i < len(matches); i++{
     for j:= 0; j < len(matches[i].Players); j++{  // interate over matches and players
       if matches[i].Players[j].ID == agentID {
-        return i
+        return i, nil
       }
     }
   }
 
-  return -1
+  return -1, errors.New("Failed to find Match by agent ID:  " + agentID)
 }
