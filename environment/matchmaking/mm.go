@@ -10,6 +10,7 @@ import (
   "strconv"
   "sort"
   "time"
+  "math"
 )
 
 type MM struct {
@@ -32,6 +33,8 @@ type ChannelBundle struct{
 func (mm *MM) run () {
   var err error
   var minDiffSelfUpdateTime int64 = int64(p_MinimumWaitTimeForAnotherMatchMaking * 1000)
+  var timeoutBase int64 = 2
+  var timeoutBaseExp int64 = 0
   nextSelfUpdateTime := myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
 
 
@@ -57,6 +60,7 @@ func (mm *MM) run () {
         "\nmsg.Body: " + msg.Body +
         "\nmsg.SendTime: " + msg.SendTime +
         "\nmsg.RecvTime: " + msg.RecvTime + "\n")
+      timeoutBaseExp = 0
       break
     default:
       currentTime := myutil.GetCurrentEpochMilli()
@@ -65,9 +69,11 @@ func (mm *MM) run () {
         err = mm.selfUpdate()
         myutil.PanicOnError(err, "selfUpdate() error")
         nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
+        timeoutBaseExp = 0
       }else
       {
-        myutil.Sleep("matchmaking", timeDiff)
+        myutil.Sleep("matchmaking", int64(math.Pow(float64(timeoutBase), float64(timeoutBaseExp))) - 1)
+        timeoutBaseExp += 1
       }
       break
     }

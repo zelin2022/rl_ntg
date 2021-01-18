@@ -14,9 +14,11 @@ func TimeStamp_RK() string { //for recordkeeper
 }
 
 func Sleep(caller string, ms int64, ){
-  log.Printf("%s will sleep for %dms.", caller, ms)
-  time.Sleep(time.Duration(ms * int64(time.Millisecond))) //https://stackoverflow.com/a/42606191 how dumb
-  log.Printf("%s has awakened after %dms of sleep.", caller, ms)
+  if ms > 0 {
+    log.Printf("%s will sleep for %dms.", caller, ms)
+    time.Sleep(time.Duration(ms * int64(time.Millisecond))) //https://stackoverflow.com/a/42606191 how dumb
+    log.Printf("%s has awakened after %dms of sleep.", caller, ms)
+  }
 }
 
 func GetCurrentEpochMilli() int64{
