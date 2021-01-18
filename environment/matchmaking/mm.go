@@ -39,7 +39,7 @@ func (mm *MM) run () {
 
 
   for {
-    log.Print("================MM================")
+    // log.Print("================MM================")
 
     select {
     case msg := <- mm.Channels.ChanMS2MM:
@@ -72,7 +72,8 @@ func (mm *MM) run () {
         timeoutBaseExp = 0
       }else
       {
-        myutil.Sleep("matchmaking", int64(math.Pow(float64(timeoutBase), float64(timeoutBaseExp))) - 1)
+        to_sleep := int64(math.Pow(float64(timeoutBase), float64(timeoutBaseExp))) - 1
+        myutil.Sleep("matchmaking", to_sleep)
         timeoutBaseExp += 1
       }
       break
@@ -110,19 +111,20 @@ func (mm *MM)dropAFK() (error){
 // MATCH MAKING +++++++++++++++++++++++++++++++++++
 
 func (mm *MM)attemptMatchMaking()(error){
-  playersPositionsInWait, err := mm.mmStrategy0()
+  playersPositionsInWait2D, err := mm.mmStrategy0()
   if err != nil {
     myutil.FailOnError(err, "Matchmaking strategy failed (current players in waiting:" +strconv.Itoa(len(mm.waitingAgents)) + ")")
     return nil
   }
-  log.Printf("Match found")
-  for i := range playersPositionsInWait{
-    err = mm.createMatch(playersPositionsInWait[i])
+  log.Printf("Matches found: total %d", len(playersPositionsInWait2D))
+  for i := range playersPositionsInWait2D{
+    err = mm.createMatch(playersPositionsInWait2D[i])
     if err != nil {
       return err
     }
   }
-  return nil
+  err = mm.movePlayersAfterCreateMatches(playersPositionsInWait2D)
+  return err
 }
 
 func (mm *MM)mmStrategy0() ([][]int, error){
@@ -196,20 +198,10 @@ func (mm *MM)createMatch(playersPositionsInWait []int) error {
 
   var playersToPlay []agent.Agent
 
-  var err error
   for i := range playersPositionsInWait{
     player := mm.waitingAgents[playersPositionsInWait[i]]
     // fetch players to array from waiting players
     playersToPlay = append(playersToPlay, player)
-    // delete players from waiting
-    // this is safe and won't mess with position because we sorted in descending order
-    mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, playersPositionsInWait[i])
-    if err != nil {
-      myutil.FailOnError(err, "Error while deleting from waitingAgents")
-      return err
-    }
-    // also add the players to in-game
-    mm.inGameAgents = append(mm.inGameAgents, player)
   }
 
   matchChannels := match.ChannelBundle{
@@ -223,6 +215,28 @@ func (mm *MM)createMatch(playersPositionsInWait []int) error {
   mm.pActiveMatches.Mutex.Lock()
   mm.pActiveMatches.Matches = append(mm.pActiveMatches.Matches, newMatch)
   mm.pActiveMatches.Mutex.Unlock()
+  return nil
+}
+
+func (mm *MM)movePlayersAfterCreateMatches(players2D [][]int)error{
+  var players []int
+  for i := range players2D{
+    for j := range players2D[i]{
+      players = append(players, players2D[i][j])
+    }
+  }
+  // add the players to in-game
+  for k := range players{
+    mm.inGameAgents = append(mm.inGameAgents, mm.waitingAgents[players[k]])
+  }
+  // delete players from waiting
+  // this is safe and won't mess with position because we sorted in descending order
+  var err error
+  mm.waitingAgents, err = agent.DeleteAgents(mm.waitingAgents, players)
+  if err != nil {
+    myutil.FailOnError(err, "Error while deleting from waitingAgents")
+    return err
+  }
   return nil
 }
 

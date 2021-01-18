@@ -66,16 +66,17 @@ func DeleteAgents(agents []Agent, toDelete []int)(a []Agent, e error){
   }()
 
   var len_after_delete = len(agents) - len(toDelete)
-  for i,j := 0, len_after_delete; i < len(toDelete); i, j = i+1, j+1{
-    if contains(toDelete, j){ // if we need to delete J anyway
-      // skip but do not increment i
-      i--
-    }else{
-      if (toDelete[i] >= len_after_delete){ // if this one will be deleted, we don't save it
-        // skip
-      }else{
-        agents[toDelete[i]] = agents[j]
-      }
+  var needSwap []int
+  for i := len_after_delete; i < len(agents); i++{
+    if !contains(toDelete, i){
+      needSwap = append(needSwap, i)
+    }
+  }
+  for j := range toDelete{
+    var it_over_needSwap int = 0
+    if toDelete[j] < len_after_delete{
+      agents[toDelete[j]] = agents[needSwap[it_over_needSwap]]
+      it_over_needSwap += 1
     }
   }
   return agents[:len_after_delete], nil
