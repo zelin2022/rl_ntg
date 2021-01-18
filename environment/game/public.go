@@ -46,7 +46,7 @@ func (g *Game)TryMove(move string, hash string) error{ // hash is to verify boar
 
   err := g.state.doMove(move)
   if err != nil{
-    myutil.FailOnError(err, "g.state.doMove() failed, reverting to backup")
+    myutil.FailOnError(err, "g.state.doMove() failed, invalid move, reverting to backup")
     g.state = &backup
     return err
   }

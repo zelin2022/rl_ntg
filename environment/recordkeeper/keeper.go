@@ -24,7 +24,7 @@ func (rk *RecordKeeper)Run (){
   rk.file, err = os.Create(p_RECORDKEEPER_PATH_TO_RECORD + myutil.TimeStamp_RK())
   defer rk.file.Close()
   if err != nil{
-    panic(err) // critical error
+    myutil.PanicOnError(err, "failed to create record file") // critical error
   }
   for{
     mr := <- rk.ChanMS2RK

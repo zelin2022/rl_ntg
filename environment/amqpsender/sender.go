@@ -33,13 +33,18 @@ func (se *AMQPSender)Run(){
 
 func (se *AMQPSender)send_SenderIntake(toSend channelstructs.SenderIntake){
   jsonString, err := json.Marshal(toSend.Message)
-  myutil.FailOnError(err, "Failed to JSON Marshal a struct")
+  if (err != nil) {
+    myutil.FailOnError(err, "Failed to JSON Marshal a struct")
+    return
+  }
   for i := 0; i < len(toSend.AgentsToSend); i++{
     log.Printf("Sending to agent %s queue %s\n%s", toSend.AgentsToSend[i].ID, toSend.AgentsToSend[i].Queue, jsonString)
     err = se.sendString(string(jsonString), toSend.AgentsToSend[i].Queue)
-    myutil.FailOnError(err, "Fail to send to agent: " + toSend.AgentsToSend[i].ID +
-      "\nqueue: " + toSend.AgentsToSend[i].Queue +
-      "\nmessage: \n" + string(jsonString))
+    if err != nil {
+      myutil.FailOnError(err, "Fail to send to agent: " + toSend.AgentsToSend[i].ID +
+        "\nqueue: " + toSend.AgentsToSend[i].Queue +
+        "\nmessage: \n" + string(jsonString))
+    }
   }
 }
 

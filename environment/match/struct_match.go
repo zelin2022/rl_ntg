@@ -77,7 +77,7 @@ func (m *Match) matchUnderway(){
       info, err := ToMatchMoveInfo(moveReceived.Body)
       if err != nil {
         myutil.FailOnError(err, "Error parsing MatchMoveInfo(json):\n" + moveReceived.Body)
-        return
+        continue
       }
       err = m.doMove(moveNum, info)
       if err != nil{

@@ -22,9 +22,9 @@ type ChannelBundle struct{
 
 func Create(channels ChannelBundle, listener_queue string, sender_queue string, activeMatches *match.ActiveMatches) (close func()) {
   conn, err := amqp.Dial("amqp://test:test@localhost:5672/")
-  myutil.FailOnError(err, "Failed to connect to RabbitMQ")
+  myutil.PanicOnError(err, "Failed to connect to RabbitMQ")
   ch, err := conn.Channel()
-  myutil.FailOnError(err, "Failed to open a channel")
+  myutil.PanicOnError(err, "Failed to open a channel")
 
   q, err := ch.QueueDeclare(
     listener_queue, // name
@@ -34,7 +34,7 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
     false,   // no-wait
     nil,     // arguments
   )
-  myutil.FailOnError(err, "Failed to declare a queue")
+  myutil.PanicOnError(err, "Failed to declare a queue")
 
   purged, err := ch.QueuePurge(
     listener_queue,
@@ -54,7 +54,7 @@ func Create(channels ChannelBundle, listener_queue string, sender_queue string, 
     false,  // no-waitamqpsender
     nil,    // args
   )
-  myutil.FailOnError(err, "Failed to register a consumer")
+  myutil.PanicOnError(err, "Failed to register a consumer")
 
   LSChannels := amqplistener.ChannelBundle{
     ChanLS2MM: channels.ChanLS2MM,

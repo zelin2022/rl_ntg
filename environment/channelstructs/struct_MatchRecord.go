@@ -17,6 +17,6 @@ type MatchRecord struct {
 
 func (mr *MatchRecord) ToString()string{
   str, err := json.MarshalIndent(mr, "", "    ")
-  myutil.FailOnError(err, "json parsing failed, struct: " + fmt.Sprintf("%v", mr))
+  myutil.FailOnError(err, "MatchRecord.ToString() error: json parsing failed, struct: " + fmt.Sprintf("%v", mr))
   return string(str)
 }

@@ -37,6 +37,7 @@ func (mm *MM) run () {
 
   for {
     log.Print("================MM================")
+
     select {
     case msg := <- mm.Channels.ChanMS2MM:
       log.Printf("Match finished: " + msg )
@@ -51,7 +52,7 @@ func (mm *MM) run () {
     case msg := <- mm.Channels.ChanLS2MM: // from amqplistener, tells you some agent satus
       log.Printf(myutil.TimeStamp() + " MM Receive: src:ChanLS2MM, header:" + msg.Header + ", agent:" + msg.AgentID)
       err = mm.updateAgents(msg)
-      myutil.FailOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
+      myutil.PanicOnError(err, "MM.updateAgent failed\nmsg.Header: " + msg.Header +
         "\nmsg.AgentID: " + msg.AgentID +
         "\nmsg.Body: " + msg.Body +
         "\nmsg.SendTime: " + msg.SendTime +
@@ -62,19 +63,18 @@ func (mm *MM) run () {
       timeDiff := nextSelfUpdateTime - currentTime
       if timeDiff <= 0  {
         err = mm.selfUpdate()
-        // if mm was successful, we chain it, by not incrementing nextSelfUpdateTime
-        if err != nil { // else we induce sleep
-          nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
-        }
-        }else{
-          myutil.Sleep("matchmaking", timeDiff)
-        }
-        break
+        myutil.PanicOnError(err, "selfUpdate() error")
+        nextSelfUpdateTime = myutil.GetCurrentEpochMilli() + minDiffSelfUpdateTime
+      }else
+      {
+        myutil.Sleep("matchmaking", timeDiff)
       }
+      break
+    }
   }
 }
 
-func (mm *MM)selfUpdate()error{
+func (mm *MM)selfUpdate()(error){
     // first drop afks before matchmaking
     var err error
     err = mm.dropAFK()
@@ -84,23 +84,50 @@ func (mm *MM)selfUpdate()error{
     return err
 }
 
-// MATCH MAKING +++++++++++++++++++++++++++++++++++
 
-func (mm *MM)attemptMatchMaking()(error){
-  playersPositionsInWait := mm.mmStrategy0()
-  if playersPositionsInWait == nil {
-    return errors.New("Match making failed (possibly not enough players) (current players in waiting:" +strconv.Itoa(len(mm.waitingAgents)) + ")")
+func (mm *MM)dropAFK() (error){
+  var err error
+  var cutOffTime int64 = time.Now().Unix() - p_WaitingTimeoutSecondsAgo
+  for i := range mm.waitingAgents{
+    if mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID] < cutOffTime{ // if last waiting is before...
+      log.Printf("Dropping Agent %s for being AFK, last waiting was %d and cutoff is %d", mm.waitingAgents[i].ID, mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID], cutOffTime)
+      // drop agent
+      mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, i)
+      myutil.FailOnError(err, "Error while dropping agents from waitingAgents")
+      // potentially delete agent from onlineAgents too
+      // however sicne we don't use onlineAgents for anything, we don't need to
+    }
   }
-  log.Printf("Match found")
-  mm.createMatch(playersPositionsInWait)
   return nil
 }
 
-func (mm *MM)mmStrategy0() ([]int){
-  if len(mm.waitingAgents) >= 2 {
-    return []int{0, 1}
+// MATCH MAKING +++++++++++++++++++++++++++++++++++
+
+func (mm *MM)attemptMatchMaking()(error){
+  playersPositionsInWait, err := mm.mmStrategy0()
+  if err != nil {
+    myutil.FailOnError(err, "Matchmaking strategy failed (current players in waiting:" +strconv.Itoa(len(mm.waitingAgents)) + ")")
+    return nil
+  }
+  log.Printf("Match found")
+  for i := range playersPositionsInWait{
+    err = mm.createMatch(playersPositionsInWait[i])
+    if err != nil {
+      return err
+    }
   }
   return nil
+}
+
+func (mm *MM)mmStrategy0() ([][]int, error){
+  var out2D [][]int
+  if len(mm.waitingAgents) >= 2 {
+    for i := 0; i < (len(mm.waitingAgents) / 2); i++ {
+        out2D = append(out2D, []int{ 2 * i , 2 * i + 1 })
+    }
+    return out2D, nil
+  }
+  return out2D, errors.New("mmStrategy0 failed Not enough players")
 }
 
 // UPDATE AGENTS ===================================
@@ -155,7 +182,7 @@ func (mm *MM)agentWaiting(myAgent agent.Agent)(error){
 
 // ==========================================
 
-func (mm *MM)createMatch(playersPositionsInWait []int){
+func (mm *MM)createMatch(playersPositionsInWait []int) error {
   // sort by descending order
   sort.Slice(playersPositionsInWait, func(i,j int) bool{
     return playersPositionsInWait[i] > playersPositionsInWait[j]
@@ -171,7 +198,10 @@ func (mm *MM)createMatch(playersPositionsInWait []int){
     // delete players from waiting
     // this is safe and won't mess with position because we sorted in descending order
     mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, playersPositionsInWait[i])
-    myutil.FailOnError(err, "Error while deleting from waitingAgents")
+    if err != nil {
+      myutil.FailOnError(err, "Error while deleting from waitingAgents")
+      return err
+    }
     // also add the players to in-game
     mm.inGameAgents = append(mm.inGameAgents, player)
   }
@@ -187,6 +217,7 @@ func (mm *MM)createMatch(playersPositionsInWait []int){
   mm.pActiveMatches.Mutex.Lock()
   mm.pActiveMatches.Matches = append(mm.pActiveMatches.Matches, newMatch)
   mm.pActiveMatches.Mutex.Unlock()
+  return nil
 }
 
 func (mm *MM)closeMatch(id string){
@@ -196,35 +227,20 @@ func (mm *MM)closeMatch(id string){
   pos, err := match.FindMatchByMatchID(mm.pActiveMatches.Matches, id)
   if err != nil {
     mm.pActiveMatches.Mutex.Unlock()
-    panic("Error when finding match by match ID")
+    myutil.PanicOnError(err, "Error when finding match by match ID")
   }
   players := mm.pActiveMatches.Matches[pos].Players
   mm.pActiveMatches.Matches, err = match.DeleteMatchByMatchID(mm.pActiveMatches.Matches, id)
   mm.pActiveMatches.Mutex.Unlock()
   if err != nil {
-    panic("Error when deleting match by match ID")
+    myutil.PanicOnError(err, "Error when deleting match by match ID")
   }
   // release players back to online
+  // no need to put them to waiting, because agent should send waiting after game ends
   for i := range players{
     mm.inGameAgents, err = agent.DeleteAgentByID(mm.inGameAgents, players[i].ID)
     if err != nil {
-      myutil.FailOnError(err, "Failed to return agent back to inGameAgents")
+      myutil.FailOnError(err, "Failed to delete agent from inGameAgents")
     }
   }
-}
-
-func (mm *MM)dropAFK() (error){
-  var err error
-  var cutOffTime int64 = time.Now().Unix() - p_WaitingTimeoutSecondsAgo
-  for i := range mm.waitingAgents{
-    if mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID] < cutOffTime{ // if last waiting is before...
-      log.Printf("Dropping Agent %s for being AFK, last waiting was %d and cutoff is %d", mm.waitingAgents[i].ID, mm.agentLastWaitingStatusTime[mm.waitingAgents[i].ID], cutOffTime)
-      // drop agent
-      mm.waitingAgents, err = agent.DeleteAgent(mm.waitingAgents, i)
-      myutil.FailOnError(err, "Error while dropping agents from waitingAgents")
-      // potentially delete agent from onlineAgents too
-      // however sicne we don't use onlineAgents for anything, we don't need to
-    }
-  }
-  return nil
 }

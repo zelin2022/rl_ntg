@@ -32,7 +32,7 @@ func (ls *AMQPListener)processMessage(body []byte, recvTime string) error {
   var serverIn channelstructs.ListenerOutput
   err := json.Unmarshal([]byte(body), &serverIn)
   if err != nil {
-    return err
+    myutil.PanicOnError(err, "Failed to process message: " + string(body))
   }
 
   serverIn.RecvTime = recvTime
