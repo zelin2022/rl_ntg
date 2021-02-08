@@ -84,10 +84,10 @@ class Client:
         output["stime"] = self.time_stamp()
         return json.dumps(output)
 
-    def create_status_msg(self, status):
+    def create_status_msg(self, status, body=""):
         output = {}
         output["header"] = status
-        output["body"] = self.amqp.get_agent_queue()
+        output["body"] = json.dumps(body)
         output["aid"] = self.agentID
         output["stime"] = self.time_stamp()
         return json.dumps(output)
@@ -146,10 +146,18 @@ class Client:
 
 ########################################################
     def send_sign_in(self):
-        self.amqp.send_something(self.create_status_msg("sign in"))
+        self.amqp.send_something(self.create_status_msg(status="sign in"))
 
     def send_sign_out(self):
-        self.amqp.send_something(self.create_status_msg("sign out"))
+        self.amqp.send_something(self.create_status_msg(status="sign out"))
 
     def send_waiting(self):
-        self.amqp.send_something(self.create_status_msg("waiting"))
+        body={}
+        body["queue"] = self.amqp.get_agent_queue()
+        if hasattr(self, 'mmc'):
+            body["mmc"] = self.mmc
+        self.amqp.send_something(self.create_status_msg(status="waiting", body=body))
+
+########################################################
+    def set_mmc(self, mmc): # set MMC Match Making Code
+        self.mmc = mmc

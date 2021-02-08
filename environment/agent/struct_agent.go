@@ -6,6 +6,7 @@ import (
 type Agent struct {
   ID string
   Queue string
+  MMC string
 }
 
 // HELPER METHODS ==============================================================================

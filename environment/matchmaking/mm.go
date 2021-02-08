@@ -144,11 +144,11 @@ func (mm *MM)updateAgents(serverIn channelstructs.ListenerOutput) (error) {
   var err error = nil
   var theAgent agent.Agent
   theAgent.ID = serverIn.AgentID
-  theAgent.Queue = serverIn.Body   // for status message, body is straight up agent_queue?
   switch serverIn.Header {
   case p_HEADER_AGENT_SIGN_IN:
     err = mm.agentSignIn(theAgent)
   case p_HEADER_AGENT_WAITING:
+    extractStatusMessageBody(&theAgent, serverIn.Body)
     err = mm.agentWaiting(theAgent)
   case p_HEADER_AGENT_SIGN_OUT:
     err = mm.agentSignOut(theAgent)
@@ -186,6 +186,13 @@ func (mm *MM)agentWaiting(myAgent agent.Agent)(error){
   }
   mm.agentLastWaitingStatusTime[myAgent.ID] = time.Now().Unix()
   return nil
+}
+
+func extractStatusMessageBody(theAgent *agent.Agent, body string){
+  message, err := toStatusBody(body)
+  myutil.PanicOnError(err, "extract status message body")
+  theAgent.Queue = message.Queue
+  theAgent.MMC = message.MMC
 }
 
 // ==========================================
