@@ -36,6 +36,17 @@ if __FILE__ == $0
   # wait a bit
   sleep 2
 
+  Dir.new(log_current_dir).each {|file|
+    full_path_file = File.join(log_current_dir, file)
+    next unless File.file? full_path_file
+    num = file.to_s.sub('.log','').sub('agent','').to_i
+    count = ARGV[0].to_i
+    if num > count
+      puts "deleting #{file}"
+      FileUtils.rm_f(full_path_file)
+    end
+  }
+
   # start agents
   agents_id = []
   for i in (1..ARGV[0].to_i)
