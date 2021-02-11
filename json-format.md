@@ -23,8 +23,13 @@
 ### body:
 
 #### status
- body for status is its queue
- should be turned into json if we need to send any more stuff
+for waiting message only
+```
+{
+  "mmc": #match making code
+  "queue": # AMQP queue to reach agent
+}
+```
 
 #### game start
 ```
